@@ -1,0 +1,18 @@
+#!/bin/bash -xe
+
+BUILD_DIR="orthanc-s3-storage/build"
+mkdir ${BUILD_DIR} || true
+INSTALL_DIR="install"
+mkdir ${BUILD_DIR}/${INSTALL_DIR} || true
+
+pushd ${BUILD_DIR}
+
+cmake .. \
+ -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+ -DCMAKE_BUILD_TYPE=Debug \
+ -DSTANDALONE_BUILD="ON" \
+ -DSTATIC_BUILD="ON" \
+ -DALLOW_DOWNLOADS="ON" \
+ -DUSE_SYSTEM_BOOST="ON" \
+ -DUSE_SYSTEM_JSONCPP="OFF" \
+ -DUSE_SYSTEM_ORTHANC_SDK="OFF"
