@@ -42,4 +42,4 @@ else ()
 endif()
 
 add_library(PluginTest SHARED 
-    src/Plugin.c)
+    src/Plugin.cpp)
