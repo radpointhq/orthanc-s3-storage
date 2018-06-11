@@ -20,6 +20,8 @@
 
 
 #include <orthanc/OrthancCPlugin.h>
+//doesn't work yet
+#include "OrthancPluginCppWrapper.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -138,6 +140,10 @@ extern "C"
       OrthancPluginLogError(context, info);
       return -1;
     }
+
+    OrthancPlugins::OrthancConfiguration configuration(context);
+    std::string storageDir = configuration.GetStringValue("StorageDirectory", "");
+    std::string indexDir_ = configuration.GetStringValue("IndexDirectory", storageDir.c_str());  //last parameter = default value
 
     OrthancPluginRegisterStorageArea(context, StorageCreate, StorageRead, StorageRemove);
 

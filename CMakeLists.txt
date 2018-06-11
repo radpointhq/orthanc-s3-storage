@@ -42,4 +42,5 @@ else ()
 endif()
 
 add_library(PluginTest SHARED 
-    src/Plugin.cpp)
+    src/Plugin.cpp
+    src/OrthancPluginCppWrapper.cpp)
