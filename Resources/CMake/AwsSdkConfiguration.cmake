@@ -1,10 +1,20 @@
 if (NOT USE_SYSTEM_AWS_SDK)
     message("Getting AWS SDK from the web...")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-1.4.65)
-    SET(AWS_SDK_INSTALL_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-1.4.65-install)
+    SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
     SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-1.4.65-build)
     SET(AWS_SDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.4.65.tar.gz")
     SET(AWS_SDK_MD5 "5f6a0c627b212a80ade15600c7124ddc")
+
+    if (${STATIC_BUILD})
+        SET(AWS_SDK_SHARED "OFF")
+        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.a)
+        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
+    else (${STATIC_BUILD})
+        SET(AWS_SDK_SHARED "ON")
+        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.dylib)
+        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.dylib)
+    endif (${STATIC_BUILD})
 
     include(ExternalProject)
 
@@ -24,12 +34,10 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DCMAKE_INSTALL_PREFIX=${AWS_SDK_INSTALL_DIR}
         -DCMAKE_CXX_FLAGS=${EXTERNAL_CXX_FLAGS}
         -DCMAKE_C_FLAGS=${EXTERNAL_C_FLAGS}
-        -DBUILD_SHARED_LIBS=(NOT ${STATIC_BUILD})
+        -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
         -DBUILD_ONLY=s3
     )
 
-    set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.a)
-    set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
 
     include_directories(${AWS_SDK_INSTALL_DIR}/include)
     link_libraries(${AWS_CORE_LIBRARY} ${AWS_S3_LIBRARY})
