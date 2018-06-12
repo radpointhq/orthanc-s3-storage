@@ -22,6 +22,12 @@
 #include <orthanc/OrthancCPlugin.h>
 #include "OrthancPluginCppWrapper.h"
 
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+#include <aws/s3/model/CreateBucketRequest.h>
+
+Aws::S3::S3Client s3_client;
+
 #include <string.h>
 #include <stdio.h>
 #include <string>

@@ -44,6 +44,8 @@ include_directories(${ORTHANC_ROOT})
 include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/LibCurlConfiguration.cmake)
+include(${CMAKE_SOURCE_DIR}/Resources/CMake/AwsSdkConfiguration.cmake)
 
 message("ORTHANC_ROOT: ${ORTHANC_ROOT}")
 message("STATIC_BUILD: ${STATIC_BUILD}")
@@ -54,6 +56,7 @@ message("Elements in ORTHANC_CORE_SOURCES: ${COUNT_CORE_SOURCES}")
 # Check that the Orthanc SDK headers are available
 include_directories(${ORTHANC_ROOT}/Plugins/Include) #necessary for orthanc/OrthancCPLugin.h
 include_directories(${ORTHANC_ROOT}/Plugins/Samples/Common) #necessary for OrthancPluginCppWrapper.h and friends
+
 if (STATIC_BUILD OR NOT USE_SYSTEM_ORTHANC_SDK)
   message("Including ${ORTHANC_ROOT}/Sdk-1.3.2")
   include_directories(${ORTHANC_ROOT}/Sdk-1.3.2)
@@ -79,8 +82,11 @@ add_definitions(
 add_library(OrthancS3StoragePlugin SHARED 
     ${SOURCES}
     ${ORTHANC_ROOT}/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
+    ${CURL_SOURCES}
     ${ORTHANC_CORE_SOURCES}
     )
+
+add_dependencies(OrthancS3StoragePlugin AWS_SDK)
 
 message("Setting the version of the library to ${ORTHANC_S3STORAGE_VERSION}")
 add_definitions(-DORTHANC_S3STORAGE_VERSION="${ORTHANC_S3STORAGE_VERSION}")
