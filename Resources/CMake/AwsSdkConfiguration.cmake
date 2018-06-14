@@ -1,3 +1,5 @@
+set(USE_SYSTEM_AWS_SDK OFF CACHE BOOL "Use the system version of AWS SDK")
+
 if (NOT USE_SYSTEM_AWS_SDK)
     message("Getting AWS SDK from the web...")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-1.4.65)
@@ -12,8 +14,8 @@ if (NOT USE_SYSTEM_AWS_SDK)
         set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
     else (${STATIC_BUILD})
         SET(AWS_SDK_SHARED "ON")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.dylib)
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.dylib)
+        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.${CMAKE_SHARED_LIBRARY_SUFFIX})
+        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.${CMAKE_SHARED_LIBRARY_SUFFIX})
     endif (${STATIC_BUILD})
 
     include(ExternalProject)
@@ -21,7 +23,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
     set(EXTERNAL_CXX_FLAGS "-Wno-unused-private-field")
     set(EXTERNAL_C_FLAGS "")
 
-    ExternalProject_Add(AWS_SDK
+    ExternalProject_Add(aws-cpp-sdk-s3
         SOURCE_DIR ${AWS_SDK_SOURCES_DIR}
         BINARY_DIR ${AWS_SDK_BINARY_DIR}
         URL ${AWS_SDK_URL}
@@ -44,33 +46,16 @@ if (NOT USE_SYSTEM_AWS_SDK)
 
 
 else()
-    message("Looking for local AWS SDK")
-
-    #CMake
-    SET(BUILD_ONLY "s3;dynamodb")
-    SET(BUILD_SHARED_LIBS "OFF")
-    message("AWS_SDK_SOURCES_DIR: ${AWS_SDK_SOURCES_DIR}")
-    SET(aws-sdk-cpp_DIR "${AWS_SDK_SOURCES_DIR}")
-
-    #TODO: build?
+    message("Looking for local AWS SDK...")
 
     # Locate the aws sdk for c++ package.
-    find_package(aws-sdk-cpp)
-    add_definitions(-DUSE_IMPORT_EXPORT) #TODO: only for shared
+    find_package(aws-sdk-cpp REQUIRED
+        HINTS ${AWS_SDK_BINARY_DIR}
+        NO_DEFAULT_PATH
+        )
 
-    find_library(AWS_CORE_LIBRARY libaws-cpp-sdk-core.dylib.a)
-    find_library(AWS_S3_LIBRARY libaws-cpp-sdk-s3.a)
-
-    find_package(aws-sdk-cpp)
     add_definitions(-DUSE_IMPORT_EXPORT)
 
-    #find_library(AWS_CORE_LIBRARY libaws-cpp-sdk-core)
-    find_library(AWS_S3_LIBRARY libaws-cpp-sdk-s3)
+    link_libraries(aws-cpp-sdk-s3)
 
-    #include_directories(${AWS_CORE_INCLUDES} ${AWS_S3_INCLUDES})
-    link_libraries(${AWS_CORE_LIBRARY} ${AWS_S3_LIBRARY})
-
-    if (NOT ${AWS_S3_LIBRARY} OR NOT ${AWS_CORE_LIBRARY})
-        message(FATAL_ERROR "Unable to find AWS libraries")
-    endif()
 endif()
