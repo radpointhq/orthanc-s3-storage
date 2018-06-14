@@ -12,8 +12,13 @@ if (NOT USE_SYSTEM_AWS_SDK)
         set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
     else (${STATIC_BUILD})
         SET(AWS_SDK_SHARED "ON")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.dylib)
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.dylib)
+        if (APPLE)
+            set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.dylib)
+            set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.dylib)
+        elseif (UNIX)
+            set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.so)
+            set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.so)
+        endif()
     endif (${STATIC_BUILD})
 
     include(ExternalProject)
@@ -58,14 +63,8 @@ else()
     find_package(aws-sdk-cpp)
     add_definitions(-DUSE_IMPORT_EXPORT) #TODO: only for shared
 
-    find_library(AWS_CORE_LIBRARY libaws-cpp-sdk-core.dylib.a)
+    find_library(AWS_CORE_LIBRARY libaws-cpp-sdk-core.a)
     find_library(AWS_S3_LIBRARY libaws-cpp-sdk-s3.a)
-
-    find_package(aws-sdk-cpp)
-    add_definitions(-DUSE_IMPORT_EXPORT)
-
-    #find_library(AWS_CORE_LIBRARY libaws-cpp-sdk-core)
-    find_library(AWS_S3_LIBRARY libaws-cpp-sdk-s3)
 
     #include_directories(${AWS_CORE_INCLUDES} ${AWS_S3_INCLUDES})
     link_libraries(${AWS_CORE_LIBRARY} ${AWS_S3_LIBRARY})
