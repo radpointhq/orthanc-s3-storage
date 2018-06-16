@@ -34,9 +34,10 @@
 #include <fstream>
 #include <algorithm>
 
+#include <boost/interprocess/streams/bufferstream.hpp>
 
-bool UploadFileToS3(const std::string & path);
-bool DownloadFileFromS3(const std::string & path, const std::string & downloadedFileName);
+bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size);
+bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size);
 bool DeleteFileAtS3(const std::string & path);
 
 
@@ -44,8 +45,8 @@ static OrthancPluginContext* context_ = NULL;
 static std::string storageDir_ = "";
 static std::string indexDir_ = "";
 
-static Aws::String bucket_name_ = "bp.bucket.s3.1";
-static Aws::String region_  = "eu-central-1";
+static std::string bucket_name_ = "";
+static std::string region_ = "";
 
 
 
@@ -56,7 +57,7 @@ static std::string GetPath(const char* uuid)
 
 static std::string GetPathStorage(const char* uuid)
 {
-  return storageDir_ + "/" + std::string(uuid);
+  return uuid;
 }
 
 static std::string GetPathInstance(const char* uuid)
@@ -72,34 +73,31 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
 {
 
   std::string path = "";
+  bool ok = false;
+  FILE* fp = nullptr;
   switch (type) {
-  case     OrthancPluginContentType::OrthancPluginContentType_Dicom:
+  case OrthancPluginContentType_Dicom:
+      //NOTE credentials are set in ~/.aws/credentials file
+      //TODO make this correct way, get credentials form orthanc's json file
       path   = GetPathStorage(uuid);
+      ok = UploadFileToS3(path, content, size)==EXIT_SUCCESS;
       break;
   case OrthancPluginContentType_DicomAsJson:
+      //TODO change old fashion stdio to modern c++ streams
       path   = GetPathInstance(uuid);
+      fp = fopen(path.c_str(), "wb");
+      if (!fp)
+      {
+        return OrthancPluginErrorCode_StorageAreaPlugin;
+      }
+      ok = fwrite(content, size, 1, fp) == 1;
+      fclose(fp);
       break;
   default:
+      ok = false;
       std::cerr << "Never should happen.\n";
-      path   = GetPath(uuid);
   }
-
-
-  FILE* fp = fopen(path.c_str(), "wb");
-  if (!fp)
-  {
-    return OrthancPluginErrorCode_StorageAreaPlugin;
-  }
-
-  bool ok = fwrite(content, size, 1, fp) == 1;
-  fclose(fp);
-
-  //TODO make this correct way
-  //NOTE credentials are set in ~/.aws/credentials file
-  if (type == OrthancPluginContentType_Dicom) {
-      bool ok_s3 = UploadFileToS3(path);
-  }
-
+  //return OrthancPluginErrorCode_Success;
   return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
@@ -110,66 +108,44 @@ static OrthancPluginErrorCode StorageRead(void** content,
                                           OrthancPluginContentType type)
 {
     std::string path = "";
+    bool ok = false;
+    FILE* fp = nullptr;
     switch (type) {
     case     OrthancPluginContentType::OrthancPluginContentType_Dicom:
         path   = GetPathStorage(uuid);
+        //NOTE credentials are set in ~/.aws/credentials file
+        //TODO make this correct way, get credentials form orthanc's json file
+        ok = DownloadFileFromS3(path, content, size)==EXIT_SUCCESS;
         break;
     case OrthancPluginContentType_DicomAsJson:
+        //TODO change old fashion stdio to modern c++ streams
         path   = GetPathInstance(uuid);
+        fp = fopen(path.c_str(), "rb");
+        if (!fp) {
+          return OrthancPluginErrorCode_StorageAreaPlugin;
+        }
+        if (fseek(fp, 0, SEEK_END) < 0) {
+          fclose(fp);
+          return OrthancPluginErrorCode_StorageAreaPlugin;
+        }
+        *size = ftell(fp);
+        if (fseek(fp, 0, SEEK_SET) < 0) {
+          fclose(fp);
+          return OrthancPluginErrorCode_StorageAreaPlugin;
+        }
+        if (*size == 0) {
+          *content = NULL;
+        } else {
+          *content = malloc(*size);
+          ok = !(*content == NULL || fread(*content, *size, 1, fp) != 1);
+        }
+        fclose(fp);
         break;
     default:
         std::cerr << "Never should happen.\n";
         path   = GetPath(uuid);
     }
-
-
-  FILE* fp = fopen(path.c_str(), "rb");
-  if (!fp)
-  {
-    return OrthancPluginErrorCode_StorageAreaPlugin;
-  }
-
-  if (fseek(fp, 0, SEEK_END) < 0)
-  {
-    fclose(fp);
-    return OrthancPluginErrorCode_StorageAreaPlugin;
-  }
-
-  *size = ftell(fp);
-
-  if (fseek(fp, 0, SEEK_SET) < 0)
-  {
-    fclose(fp);
-    return OrthancPluginErrorCode_StorageAreaPlugin;
-  }
-
-  bool ok = true;
-
-  if (*size == 0)
-  {
-    *content = NULL;
-  }
-  else
-  {
-    *content = malloc(*size);
-    if (*content == NULL ||
-        fread(*content, *size, 1, fp) != 1)
-    {
-      ok = false;
-    }
-  }
-
-  fclose(fp);
-
-  //TODO make this correct way
-  //NOTE credentials are set in ~/.aws/credentials file
-  if (type == OrthancPluginContentType_Dicom) {
-      std::string tempFileName = std::string("/tmp/")+path;
-      bool ok_s3 = DownloadFileFromS3(path, tempFileName);
-  }
-
-
-  return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
+    return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
 
@@ -177,46 +153,30 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
                                             OrthancPluginContentType type)
 {
     std::string path = "";
+    bool ok = false;
     switch (type) {
     case     OrthancPluginContentType::OrthancPluginContentType_Dicom:
         path   = GetPathStorage(uuid);
+        ok =  DeleteFileAtS3(path)==EXIT_SUCCESS;
         break;
     case OrthancPluginContentType_DicomAsJson:
         path   = GetPathInstance(uuid);
+        ok = (remove(path.c_str()) == 0);
         break;
     default:
         std::cerr << "Never should happen.\n";
         path   = GetPath(uuid);
     }
-
-
-  //TODO make this correct way
-  //NOTE credentials are set in ~/.aws/credentials file
-  if (type == OrthancPluginContentType_Dicom) {
-      bool ok_s3 = DeleteFileAtS3(path);
-  }
-
-
-  if (remove(path.c_str()) == 0)
-  {
-    return OrthancPluginErrorCode_Success;
-  }
-  else
-  {
-    return OrthancPluginErrorCode_StorageAreaPlugin;
-  }
-
+    return ok ? OrthancPluginErrorCode_Success: OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
-
-
-bool UploadFileToS3(const std::string & path){
+bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size){
 
 Aws::SDKOptions options;
 Aws::InitAPI(options);
 {
-    const Aws::String bucket_name = bucket_name_;
-    const Aws::String region = region_;
+    const Aws::String bucket_name = bucket_name_.c_str();
+    const Aws::String region = region_.c_str();
     const Aws::String key_name = path.c_str();
     const Aws::String file_name = path.c_str();
 
@@ -231,11 +191,13 @@ Aws::InitAPI(options);
     Aws::S3::Model::PutObjectRequest object_request;
     object_request.WithBucket(bucket_name).WithKey(key_name);
 
-    // Binary files must also have the std::ios_base::bin flag or'ed in
-    auto input_data = Aws::MakeShared<Aws::FStream>("PutObjectInputStream",
-        file_name.c_str(), std::ios_base::in | std::ios_base::binary);
+    std::shared_ptr<Aws::IOStream> body =  std::shared_ptr<Aws::IOStream>(new boost::interprocess::bufferstream((char*)content, size));
 
-    object_request.SetBody(input_data);
+    auto input_data = Aws::MakeShared<Aws::FStream>("PutObjectInputStream",
+             file_name.c_str(), std::ios_base::in | std::ios_base::binary);
+
+
+    object_request.SetBody(body);
 
     auto put_object_outcome = s3_client.PutObject(object_request);
 
@@ -254,12 +216,12 @@ Aws::ShutdownAPI(options);
 return EXIT_SUCCESS;
 }
 
-bool DownloadFileFromS3(const std::string & path, const std::string & downloadedFileName){
+bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size){
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        const Aws::String bucket_name = bucket_name_;
-        const Aws::String region = region_;
+        const Aws::String bucket_name = bucket_name_.c_str();
+        const Aws::String region = region_.c_str();
         const Aws::String key_name = path.c_str();
 
         std::cout << "Downloading " << key_name << " from S3 bucket: " <<
@@ -275,15 +237,21 @@ bool DownloadFileFromS3(const std::string & path, const std::string & downloaded
 
         auto get_object_outcome = s3_client.GetObject(object_request);
 
+        bool ok = false;
         if (get_object_outcome.IsSuccess())
         {
-            Aws::OFStream local_file;
-            local_file.open(downloadedFileName.c_str(), std::ios::out | std::ios::binary);
-            local_file << get_object_outcome.GetResult().GetBody().rdbuf();
+            *size = get_object_outcome.GetResult().GetContentLength();
+            Aws::OStringStream buf;
+            buf << get_object_outcome.GetResult().GetBody().rdbuf();
+            *content = malloc(*size);
+            if (*content!=nullptr) {
+                memcpy(*content, buf.str().c_str(), *size);
+            } else {
+                Aws::ShutdownAPI(options);
+                return EXIT_FAILURE;
+            }
             std::cout << "Done!" << std::endl;
-        }
-        else
-        {
+        } else {
             std::cout << "GetObject error: " <<
                 get_object_outcome.GetError().GetExceptionName() << " " <<
                 get_object_outcome.GetError().GetMessage() << std::endl;
@@ -299,8 +267,8 @@ bool DeleteFileAtS3(const std::string & path) {
     Aws::InitAPI(options);
     {
 
-    const Aws::String bucket_name = bucket_name_;
-    const Aws::String region = region_;
+    const Aws::String bucket_name = bucket_name_.c_str();
+    const Aws::String region = region_.c_str();
     const Aws::String key_name = path.c_str();
 
     std::cout << "Deleting" << key_name << " from S3 bucket: " <<
@@ -356,13 +324,31 @@ extern "C"
 
 
     OrthancPlugins::OrthancConfiguration configuration(context_);
-    storageDir_ = configuration.GetStringValue("StorageDirectory", "");
-    indexDir_ = configuration.GetStringValue("IndexDirectory", storageDir_.c_str());  //last parameter = default value
 
-    if (storageDir_.empty()) {
-        OrthancPluginLogWarning(context_, "StorageDir and IndexDir were not set.");
+    OrthancPlugins::OrthancConfiguration s3Storage;
+    configuration.GetSection(s3Storage, "Storage_AWS_S3");
+
+
+    //StorageDirectory not needed
+    //storageDir_ = configuration.GetStringValue("StorageDirectory", "");
+    //if (storageDir_.empty()) {
+    //    OrthancPluginLogWarning(context_, "StorageDir was not set. Using Orthanc's defaults.");
+    //}
+
+    indexDir_ = configuration.GetStringValue("IndexDirectory", "");  //last parameter = default value
+    if (indexDir_.empty()) {
+        //TODO maybe force Orthanc to crash? (i.e. return 1)
+        OrthancPluginLogWarning(context_, "IndexDirectory was not set. Using current working directory for index.");
+        indexDir_ = ".";
     }
 
+    bucket_name_ = s3Storage.GetStringValue("bucket_name", "");
+    region_  = s3Storage.GetStringValue("aws_region", "");
+    if (bucket_name_.empty() || region_.empty()) {
+        OrthancPluginLogWarning(context_, "S3 credentials were not set. S3 plugin not enabled");
+        //NOTE prevent Orthanc to start by changing return value to 1
+        return 0;
+    }
 
     OrthancPluginRegisterStorageArea(context_, StorageCreate, StorageRead, StorageRemove);
     return 0;
