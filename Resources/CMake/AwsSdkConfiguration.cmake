@@ -9,7 +9,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
 
     #SET(AWS_SDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.4.70.tar.gz")
     #SET(AWS_SDK_MD5 "d41d8cd98f00b204e9800998ecf8427e")
-    SET(AWS_SDK_GIT_REPO "git@github.com:aws/aws-sdk-cpp.git")
+    SET(AWS_SDK_GIT_REPO "https://github.com/aws/aws-sdk-cpp.git")
     SET(AWS_SDK_GIT_TAG "${AWS_SDK_VERSION}")
 
     if (${STATIC_BUILD})
