@@ -45,6 +45,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/DownloadPackage.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/LibCurlConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/OpenSslConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/AwsSdkConfiguration.cmake)
 
 message("ORTHANC_ROOT: ${ORTHANC_ROOT}")
@@ -83,10 +84,11 @@ add_library(OrthancS3StoragePlugin SHARED
     ${SOURCES}
     ${ORTHANC_ROOT}/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     ${CURL_SOURCES}
+    ${OPENSSL_SOURCES}
     ${ORTHANC_CORE_SOURCES}
     )
 
-add_dependencies(OrthancS3StoragePlugin aws-cpp-sdk-s3)
+add_dependencies(OrthancS3StoragePlugin aws-cpp-sdk-project)
 
 message("Setting the version of the library to ${ORTHANC_S3STORAGE_VERSION}")
 add_definitions(-DORTHANC_S3STORAGE_VERSION="${ORTHANC_S3STORAGE_VERSION}")

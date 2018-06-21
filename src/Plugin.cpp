@@ -235,9 +235,7 @@ bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size)
 
         auto get_object_outcome = s3_client->GetObject(object_request);
 
-        bool ok = false;
-        if (get_object_outcome.IsSuccess())
-        {
+        if (get_object_outcome.IsSuccess()) {
             *size = get_object_outcome.GetResult().GetContentLength();
             Aws::OStringStream buf;
             buf << get_object_outcome.GetResult().GetBody().rdbuf();
