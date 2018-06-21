@@ -27,3 +27,15 @@ If you follow this way, you can build Orthanc with QtCreator. Then you can debug
 2. build whole orthanc (remember flag `-j` of `make`!) with `cmake`. If you get into troubles, check [Orthanc's manual](http://book.orthanc-server.com/faq/compiling.html). 
 3. the plugins appears in `Orthanc_build` directory
 
+## Configuration
+
+Place this section in the Orthanc config:
+
+```
+  "S3" : {
+      "aws_access_key_id" : "XXX",
+      "aws_secret_access_key" : "XXX",
+      "aws_region": "eu-central-1",
+      "s3_bucket": "delme-test-bucket"
+  },
+```
