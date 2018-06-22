@@ -102,5 +102,6 @@ target_link_libraries(OrthancS3StoragePlugin)
 install(
   TARGETS OrthancS3StoragePlugin
   RUNTIME DESTINATION lib    # Destination for Windows
-  LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+  #LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+  LIBRARY DESTINATION lib    # Destination for Linux
   )

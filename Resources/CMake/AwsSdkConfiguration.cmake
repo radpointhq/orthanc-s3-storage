@@ -4,7 +4,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
     message("Getting AWS SDK from the web...")
     SET(AWS_SDK_VERSION "1.4.70")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION})
-    SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION}-build)
+    SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION}/build)
     SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 
     #SET(AWS_SDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.4.70.tar.gz")

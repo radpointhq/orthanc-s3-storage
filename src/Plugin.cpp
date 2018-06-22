@@ -376,7 +376,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
     aws_client_config.requestTimeoutMs = 600000;
 
     s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-        ALLOCATION_TAG, Aws::Auth::AWSCredentials(s3_access_key, s3_secret_key), aws_client_config);
+        ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
 
     auto outcome = s3_client->ListBuckets();
     if (outcome.IsSuccess()) {
