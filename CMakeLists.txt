@@ -88,7 +88,9 @@ add_library(OrthancS3StoragePlugin SHARED
     ${ORTHANC_CORE_SOURCES}
     )
 
-add_dependencies(OrthancS3StoragePlugin aws-cpp-sdk-project)
+if (NOT USE_SYSTEM_AWS_SDK)
+  add_dependencies(OrthancS3StoragePlugin aws-cpp-sdk)
+endif ()
 
 message("Setting the version of the library to ${ORTHANC_S3STORAGE_VERSION}")
 add_definitions(-DORTHANC_S3STORAGE_VERSION="${ORTHANC_S3STORAGE_VERSION}")

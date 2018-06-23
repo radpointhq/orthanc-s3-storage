@@ -27,7 +27,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
     set(EXTERNAL_CXX_FLAGS "-Wno-unused-private-field")
     set(EXTERNAL_C_FLAGS "")
 
-    ExternalProject_Add(aws-cpp-sdk-project
+    ExternalProject_Add(aws-cpp-sdk
         SOURCE_DIR ${AWS_SDK_SOURCES_DIR}
         BINARY_DIR ${AWS_SDK_BINARY_DIR}
         #URL ${AWS_SDK_URL}
@@ -50,7 +50,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
     link_libraries(${AWS_CORE_LIBRARY})
 
 else()
-    message("Looking for local AWS SDK...")
+    message("Looking for local AWS SDK: ${AWS_SDK_BINARY_DIR}")
 
     # Locate the aws sdk for c++ package.
     find_package(aws-sdk-cpp REQUIRED
