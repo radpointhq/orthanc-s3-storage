@@ -136,11 +136,11 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "path")
   endif()
   
   if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT})
-    message(FATAL_ERROR "Non-existing directory: ${ORTHANC_FRAMEWORK_ROOT}")
+    message(FATAL_ERROR "Non-existing directory: ${ORTHANC_FRAMEWORK_ROOT}. Update variable ORTHANC_FRAMEWORK_ROOT")
   endif()
   
   if (NOT EXISTS ${ORTHANC_FRAMEWORK_ROOT}/Resources/CMake/OrthancFrameworkParameters.cmake)
-    message(FATAL_ERROR "Directory not containing the source code of Orthanc: ${ORTHANC_FRAMEWORK_ROOT}")
+    message(FATAL_ERROR "Directory not containing the source code of Orthanc: ${ORTHANC_FRAMEWORK_ROOT}. Update variable ORTHANC_FRAMEWORK_ROOT")
   endif()
   
   set(ORTHANC_ROOT ${ORTHANC_FRAMEWORK_ROOT})
