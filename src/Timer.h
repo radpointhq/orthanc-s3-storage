@@ -4,6 +4,7 @@
 #include <boost/core/noncopyable.hpp>
 
 #include <chrono>
+#include <atomic>
 #include <type_traits>
 #include <iostream>
 
