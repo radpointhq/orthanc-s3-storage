@@ -12,7 +12,7 @@ pushd ${BUILD_DIR}
 # -DORTHANC_FRAMEWORK_SOURCE="path" \
 # -DORTHANC_FRAMEWORK_ROOT="$PWD/../../orthanc" \
 
-# User this combination in case you want it to be downloaded
+# Use this combination in case you want it to be downloaded
 # -DUSE_SYSTEM_ORTHANC_SDK="OFF" \
 # -DORTHANC_S3STORAGE_VERSION="1.3.2" \
 

@@ -73,6 +73,7 @@ endif()
 
 set(SOURCES 
   src/Plugin.cpp
+  src/Utils.cpp
   )
 
 include_directories(${ORTHANC_ROOT}/Core)  # To access "OrthancException.h"
