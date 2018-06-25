@@ -235,9 +235,7 @@ bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size)
 
         auto get_object_outcome = s3_client->GetObject(object_request);
 
-        bool ok = false;
-        if (get_object_outcome.IsSuccess())
-        {
+        if (get_object_outcome.IsSuccess()) {
             *size = get_object_outcome.GetResult().GetContentLength();
             Aws::OStringStream buf;
             buf << get_object_outcome.GetResult().GetBody().rdbuf();
@@ -378,7 +376,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
     aws_client_config.requestTimeoutMs = 600000;
 
     s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-        ALLOCATION_TAG, Aws::Auth::AWSCredentials(s3_access_key, s3_secret_key), aws_client_config);
+        ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
 
     auto outcome = s3_client->ListBuckets();
     if (outcome.IsSuccess()) {
