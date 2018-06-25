@@ -19,8 +19,8 @@
  **/
 
 #include "OrthancPluginCppWrapper.h"
-#include "timer.h"
-#include "utils.h"
+#include "Timer.h"
+#include "Utils.h"
 
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
