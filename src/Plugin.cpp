@@ -22,6 +22,8 @@
 #include "Timer.h"
 #include "Utils.h"
 
+#include <curl/curl.h>
+
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
@@ -354,6 +356,35 @@ bool readS3Configuration(OrthancPluginContext* context, std::string& s3_access_k
     return true;
 }
 
+bool easyGET() {
+    bool ok = false;
+    CURL *curl;
+    CURLcode res;
+
+    curl = curl_easy_init();
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, "http://gazeta.pl");
+        /* example.com is redirected, so we tell libcurl to follow redirection */
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+        /* Perform the request, res will get the return code */
+        res = curl_easy_perform(curl);
+        /* Check for errors */
+        if(res != CURLE_OK) {
+            std::stringstream ss;
+            ss << "curl_easy_perform() failed: %s\n" << curl_easy_strerror(res);
+            OrthancPluginLogError(context, ss.str().c_str());
+            ok = false;
+        } else {
+            ok = true;
+        }
+
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+    }
+    return ok;
+}
+
 bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_secret_key) {
 
     //Enable AWS logging
@@ -436,6 +467,10 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
     std::string s3_access_key;
     std::string s3_secret_key;
     if (!readS3Configuration(context, s3_access_key, s3_secret_key)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!easyGET()) {
         return EXIT_FAILURE;
     }
 
