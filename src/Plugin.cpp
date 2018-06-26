@@ -405,8 +405,11 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
     OrthancPluginLogInfo(context, s3_access_key.c_str());
     OrthancPluginLogInfo(context, s3_secret_key.c_str());
 
-    s3_client = Aws::MakeShared<Aws::S3::S3Client>(
+    /*s3_client = Aws::MakeShared<Aws::S3::S3Client>(
         ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
+        */
+    s3_client = Aws::MakeShared<Aws::S3::S3Client>(
+        ALLOCATION_TAG, aws_client_config);
 
     std::stringstream ss;
     ss <<  "[S3] Checking bucket: " << s3_bucket_name;
@@ -470,9 +473,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
         return EXIT_FAILURE;
     }
 
-    if (!easyGET()) {
+    /*if (!easyGET()) {
         return EXIT_FAILURE;
-    }
+    }*/
 
     //Initialization of AWS SDK
     if (!configureAwsSdk(s3_access_key, s3_secret_key)) {
