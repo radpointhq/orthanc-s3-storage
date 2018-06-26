@@ -370,8 +370,16 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
 
+    //DEBUG
+    OrthancPluginLogInfo(context, s3_access_key.c_str());
+    OrthancPluginLogInfo(context, s3_secret_key.c_str());
+
     s3_client = Aws::MakeShared<Aws::S3::S3Client>(
         ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
+
+    std::stringstream ss;
+    ss <<  "[S3] Checking bucket: " << s3_bucket_name;
+    OrthancPluginLogInfo(context, ss.str().c_str());
 
     //Create bucket if it doesn't exist
     //and verify if it exists
