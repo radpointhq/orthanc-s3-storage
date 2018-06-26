@@ -401,10 +401,6 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
 
-    //DEBUG
-    OrthancPluginLogInfo(context, s3_access_key.c_str());
-    OrthancPluginLogInfo(context, s3_secret_key.c_str());
-
     /*s3_client = Aws::MakeShared<Aws::S3::S3Client>(
         ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
         */
