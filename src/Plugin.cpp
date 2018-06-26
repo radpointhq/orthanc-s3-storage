@@ -401,11 +401,24 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
 
-    /*s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-        ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
-        */
-    s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-        ALLOCATION_TAG, aws_client_config);
+    if (!s3_access_key.empty() && !s3_secret_key.empty()) {
+        OrthancPluginLogInfo(context, "[S3] Using credentials from the config file");
+        s3_client = Aws::MakeShared<Aws::S3::S3Client>(
+                    ALLOCATION_TAG,
+                    Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)),
+                    aws_client_config,
+                    Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, //signPayloads
+                    false //useVirtualAdressing
+                    );
+
+    } else {
+        OrthancPluginLogInfo(context, "No credentials in the config file. Falling back to ~/.aws/credentials or env variables.");
+        s3_client = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
+                                                       aws_client_config,
+                                                       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+                                                       false //useVirtualAdressing
+                                                       );
+    }
 
     std::stringstream ss;
     ss <<  "[S3] Checking bucket: " << s3_bucket_name;
