@@ -15,15 +15,19 @@ if (NOT USE_SYSTEM_AWS_SDK)
     file(MAKE_DIRECTORY ${AWS_SDK_BINARY_DIR})
     
 
-    if (${STATIC_BUILD})
-        SET(AWS_SDK_SHARED "OFF")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.a)
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
-    else (${STATIC_BUILD})
-        SET(AWS_SDK_SHARED "ON")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
-    endif (${STATIC_BUILD})
+#    if (${STATIC_BUILD})
+#        SET(AWS_SDK_SHARED "OFF")
+#        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.a)
+#        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
+#    else (${STATIC_BUILD})
+#        SET(AWS_SDK_SHARED "ON")
+#        SET(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
+#        SET(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
+#    endif (${STATIC_BUILD})
+
+    SET(AWS_SDK_SHARED "ON")
+    SET(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
+    SET(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
 
     include(ExternalProject)
 
