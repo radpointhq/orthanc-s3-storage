@@ -341,7 +341,7 @@ bool readS3Configuration(OrthancPluginContext* context, Aws::String& s3_access_k
     OrthancPluginLogInfo(context, log_region.str().c_str());
 
     std::stringstream log_bucket;
-    log_region << "[S3] Aws bucket: " << s3_bucket_name;
+    log_bucket << "[S3] Aws bucket: " << s3_bucket_name;
     OrthancPluginLogInfo(context, log_bucket.str().c_str());
 
     return true;
