@@ -23,8 +23,6 @@ set(ORTHANC_FRAMEWORK_ARCHIVE "" CACHE STRING "Path to the Orthanc archive, if O
 set(ORTHANC_FRAMEWORK_ROOT "" CACHE STRING "Path to the Orthanc source directory, if ORTHANC_FRAMEWORK_SOURCE is \"path\"")
 
 # Advanced parameters to fine-tune linking against system libraries
-set(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
-set(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 set(USE_SYSTEM_ORTHANC_SDK ON CACHE BOOL "Use the system version of the Orthanc plugin SDK")
 
 # Download and setup the Orthanc framework
@@ -37,6 +35,8 @@ set(ENABLE_LOCALE ON)         # Enable support for locales (notably in Boost)
 set(ENABLE_GOOGLE_TEST OFF)
 set(ENABLE_PUGIXML OFF)
 set(USE_BOOST_ICONV ON)
+set(ENABLE_SSL ON)
+set(ENABLE_WEB_CLIENT ON)
 
 include(${ORTHANC_ROOT}/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 include_directories(${ORTHANC_ROOT})
@@ -81,11 +81,15 @@ add_definitions(
   -DHAS_ORTHANC_EXCEPTION=1
   )
 
+#make the installed rpath able to reach aws shared libs
+set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../aws/lib")
+
+
 add_library(OrthancS3StoragePlugin SHARED 
     ${SOURCES}
     ${ORTHANC_ROOT}/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
-    ${CURL_SOURCES}
-    ${OPENSSL_SOURCES}
     ${ORTHANC_CORE_SOURCES}
     )
 
@@ -104,7 +108,6 @@ target_link_libraries(OrthancS3StoragePlugin)
 
 install(
   TARGETS OrthancS3StoragePlugin
-  RUNTIME DESTINATION lib    # Destination for Windows
-  #LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
-  LIBRARY DESTINATION lib    # Destination for Linux
+  LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+  #LIBRARY DESTINATION lib    # Destination for Linux
   )

@@ -52,21 +52,18 @@ bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size)
 bool DeleteFileFromS3(const std::string & path);
 
 #define ALLOCATION_TAG "Orthanc S3 Storage"
+#define AWS_DEFAULT_REGION "eu-central-1"
+#define AWS_DEFAULT_BUCKET_MAME "delme-test-bucket"
 
 OrthancPluginContext* context = nullptr;
 std::string indexDir = "";
 
-std::string s3_bucket_name = "orthanc-s3-storage";
-std::string s3_region  = "eu-central-1";
+static Aws::String s3_bucket_name;
+static Aws::String s3_region;;
 
 std::shared_ptr<Aws::S3::S3Client> s3_client;
 Aws::SDKOptions aws_api_options;
 std::mutex mutex;  // protects g_i
-
-static std::string GetPath(const char* uuid)
-{
-    return std::string(uuid);
-}
 
 static std::string GetPathStorage(const char* uuid)
 {
@@ -218,12 +215,11 @@ bool UploadFileToS3(const std::string & path, const void* content, const int64_t
 
 
     {
-        const Aws::String bucket_name = s3_bucket_name.c_str();
         const Aws::String key_name = path.c_str();
         const Aws::String file_name = path.c_str();
 
         Aws::S3::Model::PutObjectRequest object_request;
-        object_request.WithBucket(bucket_name).WithKey(key_name);
+        object_request.WithBucket(s3_bucket_name).WithKey(key_name);
 
         std::shared_ptr<Aws::IOStream> body =  std::shared_ptr<Aws::IOStream>(new boost::interprocess::bufferstream((char*)content, size));
 
@@ -251,11 +247,10 @@ bool UploadFileToS3(const std::string & path, const void* content, const int64_t
 bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size){
     std::lock_guard<std::mutex> lock(mutex);
 
-    const Aws::String bucket_name = s3_bucket_name.c_str();
     const Aws::String key_name = path.c_str();
 
     Aws::S3::Model::GetObjectRequest object_request;
-    object_request.WithBucket(bucket_name).WithKey(key_name);
+    object_request.WithBucket(s3_bucket_name).WithKey(key_name);
 
     auto get_object_outcome = s3_client->GetObject(object_request);
 
@@ -287,11 +282,10 @@ bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size)
 bool DeleteFileFromS3(const std::string & path) {
     std::lock_guard<std::mutex> lock(mutex);
 
-    const Aws::String bucket_name = s3_bucket_name.c_str();
     const Aws::String key_name = path.c_str();
 
     Aws::S3::Model::DeleteObjectRequest object_request;
-    object_request.WithBucket(bucket_name).WithKey(key_name);
+    object_request.WithBucket(s3_bucket_name).WithKey(key_name);
 
     auto delete_object_outcome = s3_client->DeleteObject(object_request);
 
@@ -308,7 +302,7 @@ bool DeleteFileFromS3(const std::string & path) {
     return EXIT_SUCCESS;
 }
 
-bool readS3Configuration(OrthancPluginContext* context, std::string& s3_access_key, std::string& s3_secret_key) {
+bool readS3Configuration(OrthancPluginContext* context, Aws::String& s3_access_key, Aws::String& s3_secret_key) {
     OrthancPlugins::OrthancConfiguration configuration(context);
 
     //idex storage
@@ -330,31 +324,30 @@ bool readS3Configuration(OrthancPluginContext* context, std::string& s3_access_k
         return false;
     }
 
-    //required
-    if (!s3_configuration.LookupStringValue(s3_access_key, "aws_access_key_id")) {
-        OrthancPluginLogError(context, "AWS credentials were not set.");
-        return false;
-    }
+    s3_access_key = s3_configuration.GetStringValue("aws_access_key_id", "").c_str();
+    s3_secret_key = s3_configuration.GetStringValue("aws_secret_access_key", "").c_str();
 
-    //required
-    if (!s3_configuration.LookupStringValue(s3_secret_key, "aws_secret_access_key")) {
-        OrthancPluginLogError(context, "AWS credentials were not set.");
-        return false;
-    }
+    s3_region = s3_configuration.GetStringValue("aws_region", AWS_DEFAULT_REGION).c_str();
+    s3_bucket_name = s3_configuration.GetStringValue("s3_bucket", AWS_DEFAULT_BUCKET_MAME).c_str();
 
-    std::string region;
-    if (s3_configuration.LookupStringValue(region, "aws_region")) {
-        s3_region = region.c_str();
-    }
+    // Log stuff
+    if (!s3_access_key.empty()) 
+	    OrthancPluginLogInfo(context, "[S3] Aws Access Key set");
+    if (!s3_secret_key.empty()) 
+	    OrthancPluginLogInfo(context, "[S3] Aws Secret Key set");
 
-    std::string bucket;
-    if (s3_configuration.LookupStringValue(bucket, "s3_bucket")) {
-        s3_bucket_name = bucket.c_str();
-    }
+    std::stringstream log_region;
+    log_region << "[S3] Aws region: " << s3_region;
+    OrthancPluginLogInfo(context, log_region.str().c_str());
+
+    std::stringstream log_bucket;
+    log_bucket << "[S3] Aws bucket: " << s3_bucket_name;
+    OrthancPluginLogInfo(context, log_bucket.str().c_str());
+
     return true;
 }
 
-bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_secret_key) {
+bool configureAwsSdk(const Aws::String& s3_access_key, const Aws::String& s3_secret_key) {
 
     //Enable AWS logging
     Aws::Utils::Logging::InitializeAWSLogging(
@@ -370,15 +363,35 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
 
-    s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-        ALLOCATION_TAG, Aws::Auth::AWSCredentials(Aws::String(s3_access_key), Aws::String(s3_secret_key)), aws_client_config);
+    if (!s3_access_key.empty() && !s3_secret_key.empty()) {
+        OrthancPluginLogInfo(context, "[S3] Using credentials from the config file");
+        s3_client = Aws::MakeShared<Aws::S3::S3Client>(
+                    ALLOCATION_TAG,
+                    Aws::Auth::AWSCredentials(s3_access_key, s3_secret_key),
+                    aws_client_config,
+                    Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, //signPayloads
+                    false //useVirtualAdressing
+                    );
+
+    } else {
+        OrthancPluginLogInfo(context, "No credentials in the config file. Falling back to ~/.aws/credentials or env variables.");
+        s3_client = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
+                                                       aws_client_config,
+                                                       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+                                                       false //useVirtualAdressing
+                                                       );
+    }
+
+    std::stringstream ss;
+    ss <<  "[S3] Checking bucket: " << s3_bucket_name;
+    OrthancPluginLogInfo(context, ss.str().c_str());
 
     //Create bucket if it doesn't exist
     //and verify if it exists
     Aws::S3::Model::CreateBucketRequest request;
-    request.SetBucket(Aws::String(s3_bucket_name));
+    request.SetBucket(s3_bucket_name);
     Aws::S3::Model::CreateBucketConfiguration req_config;
-    req_config.SetLocationConstraint(Aws::S3::Model::BucketLocationConstraintMapper::GetBucketLocationConstraintForName(Aws::String(s3_region)));
+    req_config.SetLocationConstraint(Aws::S3::Model::BucketLocationConstraintMapper::GetBucketLocationConstraintForName(s3_region));
     request.SetCreateBucketConfiguration(req_config);
 
     auto outcome = s3_client->CreateBucket(request);
@@ -400,6 +413,7 @@ bool configureAwsSdk(const std::string& s3_access_key, const std::string& s3_sec
         OrthancPluginLogError(context, err.str().c_str());
         return false;
     }
+
     return true;
 }
 
@@ -425,8 +439,8 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
     OrthancPluginSetDescription(context, "Implementation of S3 Storage.");
 
-    std::string s3_access_key;
-    std::string s3_secret_key;
+    Aws::String s3_access_key;
+    Aws::String s3_secret_key;
     if (!readS3Configuration(context, s3_access_key, s3_secret_key)) {
         return EXIT_FAILURE;
     }

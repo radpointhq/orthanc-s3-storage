@@ -5,25 +5,22 @@ if (NOT USE_SYSTEM_AWS_SDK)
     SET(AWS_SDK_VERSION "1.4.70")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION})
     SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION}-build)
-    SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
+    SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/orthanc/aws)
 
     #SET(AWS_SDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.4.70.tar.gz")
     #SET(AWS_SDK_MD5 "d41d8cd98f00b204e9800998ecf8427e")
     SET(AWS_SDK_GIT_REPO "https://github.com/aws/aws-sdk-cpp.git")
     SET(AWS_SDK_GIT_TAG "${AWS_SDK_VERSION}")
 
-    file(MAKE_DIRECTORY ${AWS_SDK_BINARY_DIR})
+    #file(MAKE_DIRECTORY ${AWS_SDK_BINARY_DIR})
     
-
-    if (${STATIC_BUILD})
-        SET(AWS_SDK_SHARED "OFF")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core.a)
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3.a)
-    else (${STATIC_BUILD})
-        SET(AWS_SDK_SHARED "ON")
-        set(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
-        set(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
-    endif (${STATIC_BUILD})
+    # There is an issue with static build because aws libs 
+    # are adding libcurl libz and libssl from the system
+    # A solution would be to eitherr add here the sources directly
+    # or make aws use the same libs as Orthanc
+    SET(AWS_SDK_SHARED "ON")
+    SET(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
+    SET(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
 
     include(ExternalProject)
 
@@ -45,6 +42,10 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DCMAKE_C_FLAGS=${EXTERNAL_C_FLAGS}
         -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
         -DBUILD_ONLY=s3
+        #-DSIMPLE_INSTALL="ON"
+        #-DNO_HTTP_CLIENT="ON"
+        #-DNO_ENCRYPTION="ON"
+        #-DFORCE_CURL="ON"
     )
 
     include_directories(${AWS_SDK_INSTALL_DIR}/include)
