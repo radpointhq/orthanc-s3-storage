@@ -1,6 +1,7 @@
 #include "Utils.h"
 
 #include "OrthancPluginCppWrapper.h"
+#include "Core/OrthancException.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -50,6 +51,33 @@ void readFile(void** content,
 void writeFile(const void* content,
                int64_t size,
                const std::string& path) {
+
+    boost::filesystem::path boostpath (path);
+
+    if (boost::filesystem::exists(boostpath))
+    {
+      // Extremely unlikely case: This Uuid has already been created
+      // in the past.
+      //TODO handle this case
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
+
+    if (boost::filesystem::exists(boostpath.parent_path()))
+    {
+      if (!boost::filesystem::is_directory(boostpath.parent_path()))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_DirectoryOverFile);
+      }
+    }
+    else
+    {
+      if (!boost::filesystem::create_directories(boostpath.parent_path()))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_FileStorageCannotWrite);
+      }
+    }
+
+
     boost::filesystem::ofstream f;
     f.open(path, std::ofstream::out | std::ofstream::binary);
     if (!f.good())
@@ -86,6 +114,17 @@ void removeFile(const std::string& path) {
         else
         {
             throw Orthanc::OrthancException(Orthanc::ErrorCode_RegularFileExpected);
+        }
+
+        // Remove the two parent directories, ignoring the error code if
+        // these directories are not empty
+        try {
+            boost::filesystem::remove(boost::filesystem::path(path).parent_path());
+            boost::filesystem::remove(boost::filesystem::path(path).parent_path().parent_path());
+        }
+        catch (...)
+        {
+          // Ignore the error
         }
     }
 }
