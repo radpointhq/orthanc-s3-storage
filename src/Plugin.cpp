@@ -72,7 +72,10 @@ static std::string GetPathStorage(const char* uuid)
 
 static std::string GetPathInstance(const char* uuid)
 {
-    return indexDir + "/" + std::string(uuid);
+    std::string level_1 (uuid, 0, 2);
+    std::string level_2 (uuid, 2, 2);
+    return indexDir + "/" + level_1 + "/" + level_2  + "/" + std::string(uuid);
+
 }
 
 
