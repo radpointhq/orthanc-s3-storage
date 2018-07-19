@@ -19,23 +19,12 @@
  **/
 
 #include "OrthancPluginCppWrapper.h"
-#include "Timer.h"
-#include "Utils.h"
+#include "Version.hpp"
+#include "Timer.hpp"
+#include "Utils.hpp"
+#include "S3ops.hpp"
 
-#include <aws/core/Aws.h>
-#include <aws/core/auth/AWSCredentialsProvider.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/PutObjectRequest.h>
-#include <aws/s3/model/DeleteObjectRequest.h>
-#include <aws/s3/model/GetObjectRequest.h>
-#include <aws/s3/model/CreateBucketRequest.h>
-#include <aws/s3/model/GetBucketLocationRequest.h>
-
-#include <aws/core/utils/logging/DefaultLogSystem.h>
-#include <aws/core/utils/logging/AWSLogging.h>
-#include <aws/core/utils/FileSystemUtils.h>
-
-#include <boost/interprocess/streams/bufferstream.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <json/value.h>
 #include <json/reader.h>
@@ -47,23 +36,24 @@
 
 namespace OrthancPlugins {
 
-bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size);
-bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size);
-bool DeleteFileFromS3(const std::string & path);
-
-#define ALLOCATION_TAG "Orthanc S3 Storage"
 #define AWS_DEFAULT_REGION "eu-central-1"
 #define AWS_DEFAULT_BUCKET_MAME "delme-test-bucket"
+
+struct S3PluginContext {
+    std::string s3_access_key;
+    std::string s3_secret_key;
+
+    std::string s3_region;
+    std::string s3_bucket_name;
+
+    S3Method s3_method = S3Method::DIRECT;
+};
+//std::unique_ptr<S3Facade> s3;
+std::unique_ptr<S3Impl> s3;
 
 OrthancPluginContext* context = nullptr;
 std::string indexDir = "";
 
-static Aws::String s3_bucket_name;
-static Aws::String s3_region;;
-
-std::shared_ptr<Aws::S3::S3Client> s3_client;
-Aws::SDKOptions aws_api_options;
-std::mutex mutex;  // protects g_i
 
 static std::string GetPathStorage(const char* uuid)
 {
@@ -90,26 +80,26 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
 
     {
         std::stringstream ss;
-        ss << "[S3] PUT: " << uuid;
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        ss << "[S3] PUT: " << uuid << " begin";
+        LogInfo(context, ss.str().c_str());
     }
 
     try {
         if (type == OrthancPluginContentType_Dicom) {
             path = GetPathStorage(uuid);
-            ok = UploadFileToS3(path, content, size)==EXIT_SUCCESS;
+            ok = s3->UploadFileToS3(path, content, size);
         } else if (type== OrthancPluginContentType_DicomAsJson) {
             path = GetPathInstance(uuid);
             Utils::writeFile(content, size, path);
             ok = true;
         } else {
             ok = false;
-            OrthancPluginLogError(context, "[S3] Never should happen");
+            LogError(context, "[S3] Never should happen");
         }
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err << "[S3] Could not open uuid: " << path << ", " << e.What();
-        OrthancPluginLogError(context, err.str().c_str());
+        LogError(context, err.str().c_str());
         ok = false;
     }
 
@@ -117,7 +107,7 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
         auto executionDuration = timer.elapsed();
         std::stringstream ss;
         ss << "[S3] PUT " << uuid << " finished in " << executionDuration << "us";
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        LogInfo(context, ss.str().c_str());
     }
 
     return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
@@ -136,25 +126,25 @@ static OrthancPluginErrorCode StorageRead(void** content,
     {
         std::stringstream ss;
         ss << "[S3] GET: " << uuid;
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        LogInfo(context, ss.str().c_str());
     }
 
     try {
         if (type == OrthancPluginContentType_Dicom) {
             path = GetPathStorage(uuid);
-            ok = DownloadFileFromS3(path, content, size)==EXIT_SUCCESS;
+            ok = s3->DownloadFileFromS3(path, content, size);
         } else if (type == OrthancPluginContentType_DicomAsJson) {
             path = GetPathInstance(uuid);
             Utils::readFile(content, size, path);
             ok = true;
         } else {
-            OrthancPluginLogError(context, "[S3] Never should happen");
+            LogError(context, "[S3] Never should happen");
             ok = false;
         }
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err << "[S3] Could not read file: " << path << ", " << e.What();
-        OrthancPluginLogError(context, err.str().c_str());
+        LogError(context, err.str().c_str());
         ok = false;
     }
 
@@ -163,7 +153,7 @@ static OrthancPluginErrorCode StorageRead(void** content,
         auto executionDuration = timer.elapsed();
         std::stringstream ss;
         ss << "[S3] GET " << uuid << " finished in " << executionDuration << "us";
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        LogInfo(context, ss.str().c_str());
     }
 
     return ok ? OrthancPluginErrorCode_Success : OrthancPluginErrorCode_StorageAreaPlugin;
@@ -180,26 +170,26 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
     {
         std::stringstream ss;
         ss << "[S3] DELETE: " << uuid;
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        LogInfo(context, ss.str().c_str());
     }
 
     try {
         if (type == OrthancPluginContentType_Dicom) {
             path = GetPathStorage(uuid);
-            ok = DeleteFileFromS3(path)==EXIT_SUCCESS;
+            ok = s3->DeleteFileFromS3(path);
         } else if (type == OrthancPluginContentType_DicomAsJson) {
             path = GetPathInstance(uuid);
             Utils::removeFile(path);
             ok = true;
         } else {
-            OrthancPluginLogError(context, "[S3] Never should happen");
+            LogError(context, "[S3] Never should happen");
             ok = false;
         }
 
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err <<"[S3] Could not remove file: " << path << ", " << e.What();
-        OrthancPluginLogError(context, err.str().c_str());
+        LogError(context, err.str().c_str());
         ok = false;
     }
 
@@ -207,112 +197,21 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
         auto executionDuration = timer.elapsed();
         std::stringstream ss;
         ss << "[S3] DELETE; " << uuid << " finished in " << executionDuration << "us";
-        OrthancPluginLogInfo(context, ss.str().c_str());
+        LogInfo(context, ss.str().c_str());
     }
 
     return ok ? OrthancPluginErrorCode_Success: OrthancPluginErrorCode_StorageAreaPlugin;
 }
 
-bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size) {
-    std::lock_guard<std::mutex> lock(mutex);
+bool readS3Configuration(OrthancPluginContext* context, S3PluginContext& c) {
 
-
-    {
-        const Aws::String key_name = path.c_str();
-        const Aws::String file_name = path.c_str();
-
-        Aws::S3::Model::PutObjectRequest object_request;
-        object_request.WithBucket(s3_bucket_name).WithKey(key_name);
-
-        std::shared_ptr<Aws::IOStream> body =  std::shared_ptr<Aws::IOStream>(new boost::interprocess::bufferstream((char*)content, size));
-
-        auto input_data = Aws::MakeShared<Aws::FStream>("PutObjectInputStream",
-                                                        file_name.c_str(), std::ios_base::in | std::ios_base::binary);
-
-        object_request.SetBody(body);
-
-        auto put_object_outcome = s3_client->PutObject(object_request);
-
-        if (!put_object_outcome.IsSuccess()) {
-            std::stringstream err;
-            err << "[S3] PUT error: " <<
-                put_object_outcome.GetError().GetExceptionName() << " " <<
-                put_object_outcome.GetError().GetMessage();
-            OrthancPluginLogError(context, err.str().c_str());
-
-            return EXIT_FAILURE;
-        }
-    }
-
-    return EXIT_SUCCESS;
-}
-
-bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size){
-    std::lock_guard<std::mutex> lock(mutex);
-
-    const Aws::String key_name = path.c_str();
-
-    Aws::S3::Model::GetObjectRequest object_request;
-    object_request.WithBucket(s3_bucket_name).WithKey(key_name);
-
-    auto get_object_outcome = s3_client->GetObject(object_request);
-
-    if (get_object_outcome.IsSuccess()) {
-        *size = get_object_outcome.GetResult().GetContentLength();
-        Aws::OStringStream buf;
-        buf << get_object_outcome.GetResult().GetBody().rdbuf();
-
-        //malloc because it's freed by ::free()
-        *content = malloc(*size);
-        if (*content!=nullptr) {
-            memcpy(*content, buf.str().c_str(), *size);
-        } else {
-            return EXIT_FAILURE;
-        }
-    } else {
-        std::stringstream err;
-        err << "[S3] GET error: " <<
-               get_object_outcome.GetError().GetExceptionName() << " " <<
-               get_object_outcome.GetError().GetMessage();
-        OrthancPluginLogError(context, err.str().c_str());
-
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
-
-bool DeleteFileFromS3(const std::string & path) {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    const Aws::String key_name = path.c_str();
-
-    Aws::S3::Model::DeleteObjectRequest object_request;
-    object_request.WithBucket(s3_bucket_name).WithKey(key_name);
-
-    auto delete_object_outcome = s3_client->DeleteObject(object_request);
-
-    if (!delete_object_outcome.IsSuccess()) {
-        std::stringstream err;
-        err << "[S3] DELETE error: " <<
-            delete_object_outcome.GetError().GetExceptionName() << " " <<
-            delete_object_outcome.GetError().GetMessage();
-        OrthancPluginLogError(context, err.str().c_str());
-
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
-
-bool readS3Configuration(OrthancPluginContext* context, Aws::String& s3_access_key, Aws::String& s3_secret_key) {
     OrthancPlugins::OrthancConfiguration configuration(context);
 
     //idex storage
     indexDir = configuration.GetStringValue("IndexDirectory", indexDir.c_str());  //last parameter = default value
 
     if (indexDir.empty()) {
-        OrthancPluginLogWarning(context, "StorageDir and IndexDir were not set.");
+        LogWarning(context, "StorageDir and IndexDir were not set.");
     }
 
     //make sure indexDir exist
@@ -323,133 +222,75 @@ bool readS3Configuration(OrthancPluginContext* context, Aws::String& s3_access_k
     if (configuration.IsSection("S3")) {
         configuration.GetSection(s3_configuration, "S3");
     } else {
-        OrthancPluginLogError(context, "Can't find `S3` section in the config.");
+        LogError(context, "Can't find `S3` section in the config.");
         return false;
     }
 
-    s3_access_key = s3_configuration.GetStringValue("aws_access_key_id", "").c_str();
-    s3_secret_key = s3_configuration.GetStringValue("aws_secret_access_key", "").c_str();
+    c.s3_access_key = s3_configuration.GetStringValue("aws_access_key_id", "").c_str();
+    c.s3_secret_key = s3_configuration.GetStringValue("aws_secret_access_key", "").c_str();
 
-    s3_region = s3_configuration.GetStringValue("aws_region", AWS_DEFAULT_REGION).c_str();
-    s3_bucket_name = s3_configuration.GetStringValue("s3_bucket", AWS_DEFAULT_BUCKET_MAME).c_str();
+    c.s3_region = s3_configuration.GetStringValue("aws_region", AWS_DEFAULT_REGION).c_str();
+    c.s3_bucket_name = s3_configuration.GetStringValue("s3_bucket", AWS_DEFAULT_BUCKET_MAME).c_str();
+
+    std::string method;
+    s3_configuration.LookupStringValue(method, "implementation");
+    if (boost::iequals(method,"direct")) {
+        c.s3_method = S3Method::DIRECT;
+    } else if (boost::iequals(method, "transfer_manager")) {
+        c.s3_method = S3Method::TRANSFER_MANAGER;
+    } // else default is DIRECT
+
 
     // Log stuff
-    if (!s3_access_key.empty()) 
-	    OrthancPluginLogInfo(context, "[S3] Aws Access Key set");
-    if (!s3_secret_key.empty()) 
-	    OrthancPluginLogInfo(context, "[S3] Aws Secret Key set");
+    if (!c.s3_access_key.empty())
+        LogInfo(context, "[S3] Aws Access Key set");
+    if (!c.s3_secret_key.empty())
+        LogInfo(context, "[S3] Aws Secret Key set");
 
     std::stringstream log_region;
-    log_region << "[S3] Aws region: " << s3_region;
-    OrthancPluginLogInfo(context, log_region.str().c_str());
+    log_region << "[S3] Aws region: " << c.s3_region;
+    LogInfo(context, log_region.str().c_str());
 
     std::stringstream log_bucket;
-    log_bucket << "[S3] Aws bucket: " << s3_bucket_name;
-    OrthancPluginLogInfo(context, log_bucket.str().c_str());
+    log_bucket << "[S3] Aws bucket: " << c.s3_bucket_name;
+    LogInfo(context, log_bucket.str().c_str());
 
     return true;
 }
 
-bool configureAwsSdk(const Aws::String& s3_access_key, const Aws::String& s3_secret_key) {
-
-    //Enable AWS logging
-    Aws::Utils::Logging::InitializeAWSLogging(
-        Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>( //TODO: change log system from file to std out
-            ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Info, "aws_sdk_"));
-
-    Aws::InitAPI(aws_api_options);
-
-    //aws_client_config.region = Aws::su
-    Aws::Client::ClientConfiguration aws_client_config;
-    aws_client_config.region = s3_region;
-    aws_client_config.scheme = Aws::Http::Scheme::HTTPS;
-    aws_client_config.connectTimeoutMs = 30000;
-    aws_client_config.requestTimeoutMs = 600000;
-
-    if (!s3_access_key.empty() && !s3_secret_key.empty()) {
-        OrthancPluginLogInfo(context, "[S3] Using credentials from the config file");
-        s3_client = Aws::MakeShared<Aws::S3::S3Client>(
-                    ALLOCATION_TAG,
-                    Aws::Auth::AWSCredentials(s3_access_key, s3_secret_key),
-                    aws_client_config,
-                    Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, //signPayloads
-                    false //useVirtualAdressing
-                    );
-
-    } else {
-        OrthancPluginLogInfo(context, "No credentials in the config file. Falling back to ~/.aws/credentials or env variables.");
-        s3_client = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
-                                                       aws_client_config,
-                                                       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
-                                                       false //useVirtualAdressing
-                                                       );
-    }
-
-    std::stringstream ss;
-    ss <<  "[S3] Checking bucket: " << s3_bucket_name;
-    OrthancPluginLogInfo(context, ss.str().c_str());
-
-    //Create bucket if it doesn't exist
-    //and verify if it exists
-    Aws::S3::Model::CreateBucketRequest request;
-    request.SetBucket(s3_bucket_name);
-    Aws::S3::Model::CreateBucketConfiguration req_config;
-    req_config.SetLocationConstraint(Aws::S3::Model::BucketLocationConstraintMapper::GetBucketLocationConstraintForName(s3_region));
-    request.SetCreateBucketConfiguration(req_config);
-
-    auto outcome = s3_client->CreateBucket(request);
-
-    if (outcome.GetError().GetErrorType() == Aws::S3::S3Errors::BUCKET_ALREADY_OWNED_BY_YOU ||
-        outcome.GetError().GetErrorType() == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS ) {
-        std::stringstream ss;
-        ss << "[S3] Bucket exists: " << s3_bucket_name;
-        OrthancPluginLogInfo(context, ss.str().c_str());
-    } else if (outcome.IsSuccess()) {
-        std::stringstream ss;
-        ss << "[S3] Bucket created: " << s3_bucket_name;
-        OrthancPluginLogInfo(context, ss.str().c_str());
-    } else {
-        std::stringstream err;
-        err << "[S3] Create Bucket error: " <<
-            outcome.GetError().GetExceptionName() << " " <<
-            outcome.GetError().GetMessage();
-        OrthancPluginLogError(context, err.str().c_str());
-        return false;
-    }
-
-    return true;
-}
 
 extern "C" {
 
-ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
+ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* pluginContext)
 {
-    context = c;
-    OrthancPluginLogWarning(context, "[S3] Storage plugin is initializing");
+    context = pluginContext;
+    LogWarning(context, "[S3] Storage plugin is initializing");
 
     /* Check the version of the Orthanc core */
-    if (OrthancPluginCheckVersion(c) == 0)
+    if (OrthancPluginCheckVersion(context) == 0)
     {
         char info[1024];
         sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
-                c->orthancVersion,
+                context->orthancVersion,
                 ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
                 ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
                 ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-        OrthancPluginLogError(context, info);
+        LogError(context, info);
         return -1;
     }
 
     OrthancPluginSetDescription(context, "Implementation of S3 Storage.");
 
-    Aws::String s3_access_key;
-    Aws::String s3_secret_key;
-    if (!readS3Configuration(context, s3_access_key, s3_secret_key)) {
+    S3PluginContext c;
+    if (!readS3Configuration(context, c)) {
         return EXIT_FAILURE;
     }
 
     //Initialization of AWS SDK
-    if (!configureAwsSdk(s3_access_key, s3_secret_key)) {
+    //s3 = std::unique_ptr<S3Facade>(new S3Facade(c.s3_method, context));
+    s3 = std::unique_ptr<S3Impl>(new S3TransferManager(context));
+
+    if (!s3->ConfigureAwsSdk(c.s3_access_key, c.s3_secret_key, c.s3_bucket_name, c.s3_region)) {
         return EXIT_FAILURE;
     }
 
@@ -461,23 +302,21 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
 
 ORTHANC_PLUGINS_API void OrthancPluginFinalize()
 {
-    //Cleanup AWS logging
-    Aws::Utils::Logging::ShutdownAWSLogging();
-    Aws::ShutdownAPI(aws_api_options);
+    s3.release();
 
-    OrthancPluginLogWarning(context, "[S3] Storage plugin is finalizing");
+    LogWarning(context, "[S3] Storage plugin is finalizing");
 }
 
 
 ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
 {
-    return "s3-storage";
+    return NAME;
 }
 
 
 ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
 {
-    return "1.0.0";
+    return VERSION;
 }
 
 } //extern C

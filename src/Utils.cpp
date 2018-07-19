@@ -1,4 +1,4 @@
-#include "Utils.h"
+#include "Utils.hpp"
 
 #include "OrthancPluginCppWrapper.h"
 #include "Core/OrthancException.h"

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
+option(test "Build all tests." OFF) # Makes boolean 'test' available.
+
 project(OrthancS3Storage)
 
 set(ORTHANC_S3STORAGE_VERSION "mainline" CACHE STRING "Version of the library and Orthanc SDK")
@@ -74,6 +76,7 @@ endif()
 set(SOURCES 
   src/Plugin.cpp
   src/Utils.cpp
+  src/S3Ops.cpp
   )
 
 include_directories(${ORTHANC_ROOT}/Core)  # To access "OrthancException.h"
@@ -86,8 +89,7 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../aws/lib")
 
-
-add_library(OrthancS3StoragePlugin SHARED 
+add_library(OrthancS3StoragePlugin SHARED
     ${SOURCES}
     ${ORTHANC_ROOT}/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     ${ORTHANC_CORE_SOURCES}
@@ -111,3 +113,64 @@ install(
   LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
   #LIBRARY DESTINATION lib    # Destination for Linux
   )
+
+################################
+# Testing
+################################
+if (test)
+  if (APPLE)
+    add_definitions(-DGTEST_USE_OWN_TR1_TUPLE)
+    add_definitions(-D__GLIBCXX__)
+  endif (APPLE)
+
+  # Download and unpack googletest at configure time
+  configure_file(${CMAKE_SOURCE_DIR}/Resources/GoogleTest/CMakeLists.txt.in googletest-download/CMakeLists.txt)
+  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
+  if(result)
+      message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
+  if(result)
+      message(FATAL_ERROR "Build step for googletest failed: ${result}")
+  endif()
+
+  # Prevent GoogleTest from overriding our compiler/linker options
+  # when building with Visual Studio
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+  # This adds another subdirectory, which has 'project(gtest)'.
+  add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+                   ${CMAKE_BINARY_DIR}/googletest-build
+                   EXCLUDE_FROM_ALL)
+
+  ##############
+  # Unit Tests
+  ##############
+  add_executable(runUnitTests
+      tests/test1.cpp
+  )
+
+  set_target_properties (runUnitTests
+    PROPERTIES COMPILE_FLAGS "-Wunused-member-function")
+
+  target_include_directories(runUnitTests PRIVATE
+      ${CMAKE_SOURCE_DIR}/src
+  )
+
+  # Standard linking to gtest stuff.
+  target_link_libraries(runUnitTests gtest gtest_main)
+
+  # Extra linking for the project.
+  #target_link_libraries(runUnitTests project1_lib)
+
+  # This is so you can do 'make test' to see all your tests run, instead of
+  # manually running the executable runUnitTests to see those specific tests.
+
+  # You can also omit NAME and COMMAND. The second argument could be some other
+  # test executable.
+  add_test(MemStreamBuf.StreamTestSeek3a runUnitTests)
+endif()
