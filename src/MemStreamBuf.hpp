@@ -138,7 +138,7 @@ protected:
         auto c = traits_type::to_char_type(__c);
 
         if (epptr() == pptr()) {
-            if (!realloc(size() + 100)) {
+            if (!realloc(size() + 1024*1024)) {
                 return traits_type::eof();
             }
         }

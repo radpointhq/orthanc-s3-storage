@@ -205,8 +205,66 @@ TEST(MemStreamBuf, StreamTestSeek3a) {
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    EXPECT_EQ(buf.allocsize(), 3*size); //?
+    //EXPECT_EQ(buf.allocsize(), 100); //Default alloc for this mode is 100
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 
+TEST(MemStreamBuf, StreamTestSeek3b) {
+    Stream::MemStreamBuf buf;
+
+    std::ostream os(&buf);
+    std::ios_base::iostate exceptionMask = os.exceptions() | std::ios::failbit;
+    os.exceptions(exceptionMask);
+
+    std::stringstream stdos;
+
+    std::size_t size = 10 * 1024 * 1024;
+    std::string s1(size, 'f');
+    std::stringstream oss1(s1);
+    std::string s2(size, 'g');
+    std::stringstream oss2(s2);
+    std::string s3(size, 'h');
+    std::stringstream oss3(s3);
+
+    //part 3
+    os.seekp(2 * size, std::ios_base::beg);
+
+    std::cout << "1: " << std::ios::boolalpha <<os.good()
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << " "
+              << '\n';
+    os << oss1.rdbuf();
+    std::cout << "1a: " << std::ios::boolalpha <<os.good()
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << ", "
+              << '\n';
+    //part 2
+    os.seekp(size, std::ios_base::beg);
+    std::cout << "2: " << std::ios::boolalpha <<os.good() << ", "
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << ", "
+              << '\n';
+    os << oss2.rdbuf();
+    std::cout << "2a: " << std::ios::boolalpha <<os.good() << ", "
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << ", "
+              << '\n';
+    //and part 1
+    os.seekp(0, std::ios_base::beg);
+    os << oss3.rdbuf();
+    std::cout << "3a: " << std::ios::boolalpha <<os.good() << ", "
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << ", "
+              << '\n';
+
+    //mock it
+    stdos << s3 << s2 << s1;
+
+    EXPECT_TRUE(os.good());
+
+    os.seekp(0, std::ios_base::end);
+    EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
+    //EXPECT_EQ(buf.allocsize(), 100); //Default alloc for this mode is 100
+    EXPECT_EQ(buf.size(), 3*size); //?
+}
 } //namespace
