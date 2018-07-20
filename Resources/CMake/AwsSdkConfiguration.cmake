@@ -2,7 +2,7 @@ set(USE_SYSTEM_AWS_SDK OFF CACHE BOOL "Use the system version of AWS SDK")
 
 if (NOT USE_SYSTEM_AWS_SDK)
     message("Getting AWS SDK from the web...")
-    SET(AWS_SDK_VERSION "1.4.70")
+    SET(AWS_SDK_VERSION "1.4.89")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION})
     SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION}-build)
     SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/orthanc/aws)
@@ -42,7 +42,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DCMAKE_CXX_FLAGS=${EXTERNAL_CXX_FLAGS}
         -DCMAKE_C_FLAGS=${EXTERNAL_C_FLAGS}
         -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
-        -DBUILD_ONLY=s3;transfer
+        -DBUILD_ONLY=transfer;s3
         #-DSIMPLE_INSTALL="ON"
         #-DNO_HTTP_CLIENT="ON"
         #-DNO_ENCRYPTION="ON"

@@ -29,7 +29,7 @@ protected:
 
 public:
     S3Impl(OrthancPluginContext *c): _context(c) {};
-    ~S3Impl() {
+    virtual ~S3Impl() {
         //Cleanup AWS logging
         Aws::Utils::Logging::ShutdownAWSLogging();
         Aws::ShutdownAPI(aws_api_options);

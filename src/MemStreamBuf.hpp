@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <cstring>
 
 namespace Stream {
 
@@ -55,7 +56,7 @@ public:
     std::string str() { return std::string(_buf, size()); }
 
     std::streamsize allocsize() { return _size; } //alloc size
-    std::streamsize size() { return pptr() - pbase(); } //content length
+    size_t size() { return pptr() - pbase(); } //content length
     bool isOwning() { return _owning; }
 
     // basic_streambuf interface
@@ -109,7 +110,7 @@ protected:
 
     virtual std::streamsize xsputn(const char_type *__s, std::streamsize __n) override
     {
-        std::cout << "xsputn: " << __n << '\n';
+        //std::cout << "xsputn(" << __n << "): " << ((__s!=nullptr)?__s[0]:'-')<< '\n';
 
         //TODO: check if __n chars can be written
         if (epptr() - pptr() < __n) {
@@ -131,7 +132,7 @@ protected:
 
     virtual int_type overflow(int_type __c) override
     {
-        std::cout << "overflow: " << __c << '\n';
+        //std::cout << "overflow: " << static_cast<char>(__c) << '\n';
         if (traits_type::eq_int_type(__c,traits_type::eof()) == true) { return 0; }
 
         auto c = traits_type::to_char_type(__c);
@@ -141,23 +142,24 @@ protected:
                 return traits_type::eof();
             }
         }
+        /*
         std::cout << "Put: " << c << std::ios::hex << ", "
                   << "pbase: " << static_cast<void*>(pbase()) << ", "
                   << "pptr: " << static_cast<void*>(pptr()) << ", "
                   << "epptr: " << static_cast<void*>(epptr()) << ", "
                   << '\n';
+                  */
 
-        pbump(1);
-        *pptr() = c;
-
-        return c;
+        return sputc(c);
     }
 
+    /*
     virtual int_type pbackfail(int_type __c) override
     {
         std::cout << "pbacfail: " << __c << '\n';
         return std::streambuf::pbackfail(__c);
     }
+    */
 
 private:
     bool realloc(size_t newSize) {

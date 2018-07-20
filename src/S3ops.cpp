@@ -111,8 +111,11 @@ bool S3Direct::UploadFileToS3(const std::string &path, const void *content, cons
     Aws::S3::Model::PutObjectRequest object_request;
     object_request.WithBucket(_bucket_name).WithKey(key_name);
 
-    std::stringbuf buf(const_cast<char*>(static_cast<const char*>(content)), size);
-    std::shared_ptr<Aws::IOStream> body = Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, &buf);
+    boost::interprocess::bufferstream buf(const_cast<char*>(static_cast<const char*>(content)), static_cast<size_t>(size));
+    auto body = Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, buf.rdbuf());
+
+    //std::stringbuf buf(const_cast<char*>(static_cast<const char*>(content)), size);
+    //std::shared_ptr<Aws::IOStream> body = Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, &buf);
 
     auto input_data = Aws::MakeShared<Aws::FStream>("PutObjectInputStream",
                                                     file_name.c_str(), std::ios_base::in | std::ios_base::binary);
@@ -148,7 +151,7 @@ bool S3Direct::DownloadFileFromS3(const std::string &path, void **content, int64
 
         Aws::OStringStream buf;
         //malloc because it's freed by ::free()
-        *content = malloc(*size);
+        *content = malloc(static_cast<size_t>(*size));
 
         if (*content!=nullptr) {
             buf.rdbuf()->pubsetbuf(static_cast<char*>(*content), *size);
@@ -241,11 +244,11 @@ bool S3TransferManager::ConfigureAwsSdk(const std::string &s3_access_key, const 
 }
 
 bool S3TransferManager::UploadFileToS3(const std::string &path, const void *content, const int64_t &size) {
+    boost::interprocess::bufferstream buf(const_cast<char*>(static_cast<const char*>(content)), static_cast<size_t>(size));
+    auto body = Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, buf.rdbuf());
 
-    std::stringbuf buf(const_cast<char*>(static_cast<const char*>(content)), size);
-    auto stream =  Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, &buf);
-
-    auto requestPtr = _tm->UploadFile(stream,
+	/*
+    auto requestPtr = _tm->UploadFile(body,
                                       _bucket_name,
                                       path.c_str(),
                                       "text/plain",
@@ -256,13 +259,15 @@ bool S3TransferManager::UploadFileToS3(const std::string &path, const void *cont
     size_t retries = 0;
     while (requestPtr->GetStatus() != Aws::Transfer::TransferStatus::COMPLETED && retries++ < 5)
     {
-        _tm->RetryUpload(stream, requestPtr);
+        _tm->RetryUpload(body, requestPtr);
         requestPtr->WaitUntilFinished();
     }
 
     LogDetails(requestPtr);
 
-    return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED);
+    return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED); 
+	*/
+	return false;
 }
 
 bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **content, int64_t *size) {

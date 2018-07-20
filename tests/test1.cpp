@@ -161,40 +161,45 @@ TEST(MemStreamBuf, StreamTestSeek3a) {
 
     std::size_t size = 10;
     std::string s1(size, 'f');
-    std::ostringstream oss1(s1);
+    std::stringstream oss1(s1);
     std::string s2(size, 'g');
-    std::ostringstream oss2(s2);
+    std::stringstream oss2(s2);
     std::string s3(size, 'h');
-    std::ostringstream oss3(s3);
+    std::stringstream oss3(s3);
 
     //part 3
     os.seekp(2 * size, std::ios_base::beg);
-    std::cout << "1: "
+
+    std::cout << "1: " << std::ios::boolalpha <<os.good()
               << "size: " << buf.size() << ", "
-              << "p: " << os.tellp()
+              << "p: " << os.tellp() << " "
               << '\n';
     os << oss1.rdbuf();
-    std::cout << "1a: "
+    std::cout << "1a: " << std::ios::boolalpha <<os.good()
               << "size: " << buf.size() << ", "
               << "p: " << os.tellp() << ", "
               << '\n';
     //part 2
     os.seekp(size, std::ios_base::beg);
-    std::cout << "2: "
+    std::cout << "2: " << std::ios::boolalpha <<os.good() << ", "
               << "size: " << buf.size() << ", "
-              << "p: " << os.tellp()
+              << "p: " << os.tellp() << ", "
               << '\n';
     os << oss2.rdbuf();
-    std::cout << "2a: "
+    std::cout << "2a: " << std::ios::boolalpha <<os.good() << ", "
               << "size: " << buf.size() << ", "
-              << "p: " << os.tellp()
+              << "p: " << os.tellp() << ", "
               << '\n';
     //and part 1
     os.seekp(0, std::ios_base::beg);
     os << oss3.rdbuf();
+    std::cout << "3a: " << std::ios::boolalpha <<os.good() << ", "
+              << "size: " << buf.size() << ", "
+              << "p: " << os.tellp() << ", "
+              << '\n';
 
     //mock it
-    stdos << s1 << s2 << s3;
+    stdos << s3 << s2 << s1;
 
     EXPECT_TRUE(os.good());
 

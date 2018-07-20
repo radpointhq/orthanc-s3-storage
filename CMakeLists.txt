@@ -15,6 +15,8 @@ else()
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "-Wno-switch-default -Wno-unused-function")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -D_GLIBCXX_DEBUG")
 set(JSONCPP_CXX11 ON) #TODO: does this work?
 
 # Parameters of the build
@@ -76,7 +78,7 @@ endif()
 set(SOURCES 
   src/Plugin.cpp
   src/Utils.cpp
-  src/S3Ops.cpp
+  src/S3ops.cpp
   )
 
 include_directories(${ORTHANC_ROOT}/Core)  # To access "OrthancException.h"
@@ -155,7 +157,7 @@ if (test)
   )
 
   set_target_properties (runUnitTests
-    PROPERTIES COMPILE_FLAGS "-Wunused-member-function")
+    PROPERTIES COMPILE_FLAGS "-Wno-unused-member-function")
 
   target_include_directories(runUnitTests PRIVATE
       ${CMAKE_SOURCE_DIR}/src
