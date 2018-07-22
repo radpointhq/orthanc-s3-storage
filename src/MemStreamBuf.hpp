@@ -7,10 +7,40 @@
 
 namespace Stream {
 
+  template <typename T, size_t chunkSize = 1024>
+  class MemoryManager {
+          char* _mem;
+          size_t _size;
+          bool _owning;
+  public:
+          MemoryManager():
+          _mem(nullptr),
+          _size(0)
+          _owning(true)
+          {
+          };
+          ~MemoryManager()
+          {
+            if (_owning)  {
+              delete _mem;
+            }
+          }
+
+          char* moreMemory() {
+                  if (_size)
+
+          }
+
+          T* operator () {
+
+          }
+  };
+
+
 class MemStreamBuf : public std::streambuf
 {
     char_type* _buf;
-    std::streamsize _size;
+    size_t _size;
 
     bool _owning;
 public:
