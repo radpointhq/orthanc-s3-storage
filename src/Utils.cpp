@@ -101,7 +101,7 @@ void writeFile(const void* content,
 
 void writeFile(const std::string& content,
                const std::string& path) {
-    writeFile(content.size() > 0 ? content.c_str() : nullptr, content.size(), path);
+    writeFile(!content.empty() ? content.c_str() : nullptr, content.size(), path);
 }
 
 void removeFile(const std::string& path) {

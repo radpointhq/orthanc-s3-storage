@@ -269,13 +269,13 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* plugin
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context) == 0)
     {
-        char info[1024];
-        sprintf(info, "Your version of Orthanc (%s) must be above %d.%d.%d to run this plugin",
-                context->orthancVersion,
-                ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
-                ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
-                ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-        LogError(context, info);
+        std::stringstream ss;
+        ss << "Your version of Orthanc (" << context->orthancVersion << ") must be above "
+        << ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER << '.'
+        << ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER << '.'
+        << ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER << '.'
+        << " to run this plugin";
+        LogError(context, ss.str());
         return -1;
     }
 

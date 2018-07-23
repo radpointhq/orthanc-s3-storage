@@ -7,35 +7,36 @@
 
 namespace Stream {
 
-  template <typename T, size_t chunkSize = 1024>
-  class MemoryManager {
-          char* _mem;
-          size_t _size;
-          bool _owning;
-  public:
-          MemoryManager():
-          _mem(nullptr),
-          _size(0)
-          _owning(true)
-          {
-          };
-          ~MemoryManager()
-          {
-            if (_owning)  {
-              delete _mem;
-            }
-          }
+/*
+template <typename T, size_t chunkSize = 1024>
+class MemoryManager {
+    char* _mem;
+    size_t _size;
+    bool _owning;
+public:
+    MemoryManager():
+        _mem(nullptr),
+        _size(0),
+        _owning(true)
+    {
+    };
+    ~MemoryManager()
+    {
+        if (_owning)  {
+            delete _mem;
+        }
+    }
 
-          char* moreMemory() {
-                  if (_size)
+    char* moreMemory() {
+        if (_size) {}
 
-          }
+    }
 
-          T* operator () {
+    T* operator () {
 
-          }
-  };
-
+    }
+};
+*/
 
 class MemStreamBuf : public std::streambuf
 {
@@ -71,7 +72,7 @@ public:
 
     virtual ~MemStreamBuf() override {
         if (_owning) {
-            delete[] _buf;
+            free(static_cast<void*>(_buf));
         }
     }
 
@@ -120,9 +121,9 @@ protected:
         //TODO: __which == in? fail
         //check if can seek within allocated memory
         if ((pbase() + absoluteOffset) > epptr() ) {
-        //if not allocate more
+            //if not allocate more
 
-            if (!realloc(absoluteOffset)) {
+            if (!allocate(absoluteOffset)) {
                 return pos_type(-1);
             }
         }
@@ -146,7 +147,7 @@ protected:
         if (epptr() - pptr() < __n) {
             //TOOD: if not allocate memory, move old memory
 
-            if (!realloc(size() + __n)) {
+            if (!allocate(size() + __n)) {
                 return traits_type::eof();
             }
         }
@@ -168,7 +169,7 @@ protected:
         auto c = traits_type::to_char_type(__c);
 
         if (epptr() == pptr()) {
-            if (!realloc(size() + 1024*1024)) {
+            if (!allocate(size() + 1)) {
                 return traits_type::eof();
             }
         }
@@ -192,19 +193,23 @@ protected:
     */
 
 private:
-    bool realloc(size_t newSize) {
+    bool allocate(size_t newSize) {
         size_t pOff = pptr() - pbase();
         size_t gOff = gptr() - eback();
 
-        char_type* newStart = new char_type[newSize];
+        //good read: http://blog.httrack.com/blog/2014/04/05/a-story-of-realloc-and-laziness/
+        //char_type* newStart = new char_type[newSize];
+        char_type* newStart = static_cast<char_type*>(realloc(_buf, newSize));
         if (newStart == nullptr) {
             return false;
         }
 
+        /* realloc do this if necessary
         if (_buf) {
             std::memcpy(newStart, _buf, size()); //copy old content
             delete[] _buf;
         }
+        */
 
         _buf = newStart;
         _size = newSize;
