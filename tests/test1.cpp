@@ -118,26 +118,22 @@ TEST(MemStreamBuf, StreamTestSeek2) {
     EXPECT_EQ(buf.str().size(), out.size());
 }
 
-TEST(MemStreamBuf, StreamTestSeek3) {
+#define CHUNK_SIZE 20 * 1024 * 1024;
+TEST(MemStreamBuf, StreamTestSeek3abc) {
     Stream::MemStreamBuf buf;
 
     std::ostream os(&buf);
     std::ostringstream stdos;
 
-    size_t size = 10 * 1024 * 1024;
+    size_t size = CHUNK_SIZE;
     std::string s1(size, 'a');
+    std::stringstream oss1(s1);
     std::string s2(size, 'b');
+    std::stringstream oss2(s2);
     std::string s3(size, 'c');
+    std::stringstream oss3(s3);
 
-    //part 3
-    os.seekp(2 * size, std::ios_base::beg);
-    os << s3;
-    //part 2
-    os.seekp(size, std::ios_base::beg);
-    os << s2;
-    //and part 1
-    os.seekp(0, std::ios_base::beg);
-    os << s1;
+    os << oss1.rdbuf() << oss2.rdbuf() << oss3.rdbuf();
 
     //mock it
     stdos << s1 << s2 << s3;
@@ -150,7 +146,7 @@ TEST(MemStreamBuf, StreamTestSeek3) {
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 
-TEST(MemStreamBuf, StreamTestSeek3a) {
+TEST(MemStreamBuf, StreamTestSeek3cba) {
     Stream::MemStreamBuf buf;
 
     std::ostream os(&buf);
@@ -159,7 +155,7 @@ TEST(MemStreamBuf, StreamTestSeek3a) {
 
     std::stringstream stdos;
 
-    std::size_t size = 10;
+    std::size_t size = CHUNK_SIZE;
     std::string s1(size, 'f');
     std::stringstream oss1(s1);
     std::string s2(size, 'g');
@@ -169,47 +165,34 @@ TEST(MemStreamBuf, StreamTestSeek3a) {
 
     //part 3
     os.seekp(2 * size, std::ios_base::beg);
-
-    std::cout << "1: " << std::ios::boolalpha <<os.good()
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << " "
-              << '\n';
-    os << oss1.rdbuf();
-    std::cout << "1a: " << std::ios::boolalpha <<os.good()
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
+    os << oss3.rdbuf();
     //part 2
     os.seekp(size, std::ios_base::beg);
-    std::cout << "2: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
     os << oss2.rdbuf();
-    std::cout << "2a: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
     //and part 1
     os.seekp(0, std::ios_base::beg);
-    os << oss3.rdbuf();
+    os << oss1.rdbuf();
+
+    /*
     std::cout << "3a: " << std::ios::boolalpha <<os.good() << ", "
               << "size: " << buf.size() << ", "
               << "p: " << os.tellp() << ", "
               << '\n';
+              */
 
     //mock it
-    stdos << s3 << s2 << s1;
+    stdos << s1 << s2 << s3;
 
     EXPECT_TRUE(os.good());
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    //EXPECT_EQ(buf.allocsize(), 100); //Default alloc for this mode is 100
+    EXPECT_EQ(buf.allocsize(), 3*size); //?
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 
-TEST(MemStreamBuf, StreamTestSeek3b) {
+//same thing but with bigger size
+TEST(MemStreamBuf, StreamTestSeek3bca) {
     Stream::MemStreamBuf buf;
 
     std::ostream os(&buf);
@@ -218,53 +201,32 @@ TEST(MemStreamBuf, StreamTestSeek3b) {
 
     std::stringstream stdos;
 
-    std::size_t size = 10 * 1024 * 1024;
-    std::string s1(size, 'f');
+    std::size_t size = CHUNK_SIZE;
+    std::string s1(size, 'i');
     std::stringstream oss1(s1);
-    std::string s2(size, 'g');
+    std::string s2(size, 'j');
     std::stringstream oss2(s2);
-    std::string s3(size, 'h');
+    std::string s3(size, 'k');
     std::stringstream oss3(s3);
 
-    //part 3
-    os.seekp(2 * size, std::ios_base::beg);
-
-    std::cout << "1: " << std::ios::boolalpha <<os.good()
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << " "
-              << '\n';
-    os << oss1.rdbuf();
-    std::cout << "1a: " << std::ios::boolalpha <<os.good()
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
-    //part 2
+    //part 1
     os.seekp(size, std::ios_base::beg);
-    std::cout << "2: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
     os << oss2.rdbuf();
-    std::cout << "2a: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
+    //part 2
+    os.seekp(2 * size, std::ios_base::beg);
+    os << oss3.rdbuf();
     //and part 1
     os.seekp(0, std::ios_base::beg);
-    os << oss3.rdbuf();
-    std::cout << "3a: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
+    os << oss1.rdbuf();
 
     //mock it
-    stdos << s3 << s2 << s1;
+    stdos << s1 << s2 << s3;
 
     EXPECT_TRUE(os.good());
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    //EXPECT_EQ(buf.allocsize(), 100); //Default alloc for this mode is 100
+    EXPECT_EQ(buf.allocsize(), 3*size); //?
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 } //namespace
