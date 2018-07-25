@@ -33,11 +33,10 @@
 #include <iostream>
 #include <algorithm>
 
-
-namespace OrthancPlugins {
-
 #define AWS_DEFAULT_REGION "eu-central-1"
 #define AWS_DEFAULT_BUCKET_MAME "delme-test-bucket"
+
+namespace OrthancPlugins {
 
 struct S3PluginContext {
     std::string s3_access_key;
@@ -48,12 +47,12 @@ struct S3PluginContext {
 
     S3Method s3_method = S3Method::DIRECT;
 };
-//std::unique_ptr<S3Facade> s3;
-std::unique_ptr<S3Impl> s3;
 
 OrthancPluginContext* context = nullptr;
-std::string indexDir = "";
 
+//std::unique_ptr<S3Facade> s3;
+static std::unique_ptr<S3Impl> s3;
+static std::string indexDir = "";
 
 static std::string GetPathStorage(const char* uuid)
 {
@@ -74,7 +73,7 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
                                             int64_t size,
                                             OrthancPluginContentType type)
 {
-    stopwatch<> timer;
+    Stopwatch timer;
     bool ok = false;
     std::string path;
 
@@ -119,7 +118,7 @@ static OrthancPluginErrorCode StorageRead(void** content,
                                           const char* uuid,
                                           OrthancPluginContentType type)
 {
-    stopwatch<> timer;
+    Stopwatch timer;
     bool ok = false;
     std::string path;
 
@@ -165,7 +164,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
 {
     bool ok = false;
     std::string path;
-    stopwatch<> timer;
+    Stopwatch timer;
 
     {
         std::stringstream ss;
@@ -288,7 +287,11 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* plugin
 
     //Initialization of AWS SDK
     //s3 = std::unique_ptr<S3Facade>(new S3Facade(c.s3_method, context));
-    s3 = std::unique_ptr<S3Impl>(new S3TransferManager(context));
+    if (c.s3_method == S3Method::DIRECT) {
+        s3 = std::unique_ptr<S3Impl>(new S3Direct(context));
+    } else {//if (c.s3_method == S3Method::TRANSFER_MANAGER) {
+        s3 = std::unique_ptr<S3Impl>(new S3TransferManager(context));
+    }
 
     if (!s3->ConfigureAwsSdk(c.s3_access_key, c.s3_secret_key, c.s3_bucket_name, c.s3_region)) {
         return EXIT_FAILURE;
