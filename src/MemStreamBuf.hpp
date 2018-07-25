@@ -5,90 +5,183 @@
 #include <iostream>
 #include <cstring>
 
-namespace Stream {
+namespace Memory {
 
-/*
+template<typename T>
+class IMemoryManager {
+public:
+    IMemoryManager() = default;
+    virtual ~IMemoryManager() = default;
+
+    virtual T* operator()(size_t) = 0;
+    virtual void release()  = 0;
+};
+
+//good read: http://blog.httrack.com/blog/2014/04/05/a-story-of-realloc-and-laziness/
 template <typename T, size_t chunkSize = 1024>
-class MemoryManager {
-    char* _mem;
+class ReallocWithBlockGrowth : public IMemoryManager<T>{
+    T* _mem;
     size_t _size;
     bool _owning;
 public:
-    MemoryManager():
+    ReallocWithBlockGrowth():
         _mem(nullptr),
         _size(0),
         _owning(true)
     {
     };
-    ~MemoryManager()
-    {
-        if (_owning)  {
-            delete _mem;
-        }
-    }
 
-    char* moreMemory() {
-        if (_size) {}
-
-    }
-
-    T* operator () {
-
-    }
-};
-*/
-
-class MemStreamBuf : public std::streambuf
-{
-    char_type* _buf;
-    size_t _size;
-
-    bool _owning;
-public:
-
-    MemStreamBuf():
-        _buf(nullptr),
-        _size(0),
-        _owning(true)
-    {
-        auto beg = _buf;
-        auto end = _buf + _size;
-
-        setp(beg, end);
-        setg(beg, beg, end);
-    }
-
-    MemStreamBuf(char_type* p, std::streamsize s, bool owning = false):
-        _buf(p),
+    ReallocWithBlockGrowth(T* p, size_t s, bool owning = true):
+        _mem(p),
         _size(s),
         _owning(owning)
     {
-        auto beg = _buf;
-        auto end = _buf + _size;
+    };
 
-        setp(beg, end);
-        setg(beg, beg, end);
-    }
-
-    virtual ~MemStreamBuf() override {
-        if (_owning) {
-            free(static_cast<void*>(_buf));
+    virtual ~ReallocWithBlockGrowth()
+    {
+        if (_owning)  {
+            free(_mem);
         }
+        _size = 0;
     }
 
     //no copying for now
-    MemStreamBuf(const MemStreamBuf&) = delete;
-    MemStreamBuf& operator =(const MemStreamBuf&) = delete;
+    ReallocWithBlockGrowth(const ReallocWithBlockGrowth&) = delete;
+    ReallocWithBlockGrowth& operator =(const ReallocWithBlockGrowth&) = delete;
 
-    MemStreamBuf(const MemStreamBuf&&) = delete;
-    MemStreamBuf& operator =(const MemStreamBuf&&) = delete;
+    ReallocWithBlockGrowth(const ReallocWithBlockGrowth&&) = delete;
+    ReallocWithBlockGrowth& operator =(const ReallocWithBlockGrowth&&) = delete;
 
-    char* get() { return _buf; }
-    std::string str() { return std::string(_buf, size()); }
+    T* operator()(size_t size) override {
 
-    std::streamsize allocsize() { return _size; } //alloc size
-    size_t size() { return pptr() - pbase(); } //content length
-    bool isOwning() { return _owning; }
+        if (size == 0 && _size == 0) {
+            _size = chunkSize;
+        } else if (size < _size) {
+            return _mem;
+        } else {
+            _size += std::max(chunkSize, size);
+        }
+        _mem = static_cast<T*>(realloc(_mem, _size));
+        return _mem;
+    }
+
+    void release() override {
+        free(_mem);
+        _size = 0;
+    }
+
+    T* get() { return _mem; }
+    void set(T* p, size_t s, bool own = true) {
+        _mem =  p;
+        _size = s;
+        _owning = own;
+    }
+    size_t maxSize() { return _size; }
+    bool owning() { return _owning; }
+};
+
+template <typename T, size_t chunkSize = 1024>
+class ReallocWithDoubleGrowth : public IMemoryManager<T>{
+    T* _mem;
+    size_t _size;
+    bool _owning;
+public:
+    ReallocWithDoubleGrowth():
+        _mem(nullptr),
+        _size(0),
+        _owning(true)
+    {
+    };
+
+    ReallocWithDoubleGrowth(T* p, size_t s, bool owning = true):
+        _mem(p),
+        _size(s),
+        _owning(owning)
+    {
+    };
+
+    virtual ~ReallocWithDoubleGrowth()
+    {
+        if (_owning)  {
+            free(_mem);
+        }
+        _size = 0;
+    }
+
+    //no copying for now
+    ReallocWithDoubleGrowth(const ReallocWithDoubleGrowth&) = delete;
+    ReallocWithDoubleGrowth& operator =(const ReallocWithDoubleGrowth&) = delete;
+
+    ReallocWithDoubleGrowth(const ReallocWithDoubleGrowth&&) = delete;
+    ReallocWithDoubleGrowth& operator =(const ReallocWithDoubleGrowth&&) = delete;
+
+    T* operator()(size_t size) override {
+        //_size = std::max(chunkSize, _size * 2);
+        if (size == 0 && _size == 0) {
+            _size = chunkSize;
+        } else if (size < _size) {
+            return _mem;
+        } else {
+            _size = std::max(chunkSize, std::max(size * 2, _size * 2));
+        }
+        _mem = static_cast<T*>(realloc(_mem, _size));
+        return _mem;
+    }
+
+    void release() override {
+        free(_mem);
+        _size = 0;
+    }
+
+    T* get() { return _mem; }
+    void set(T* p, size_t s, bool own = true) {
+        _mem =  p;
+        _size = s;
+        _owning = own;
+    }
+    size_t maxSize() { return _size; }
+    bool owning() { return _owning; }
+};
+
+} //namepsace
+
+namespace Stream {
+
+template <class Allocator = Memory::ReallocWithDoubleGrowth<std::streambuf::char_type> >
+class MemStreamBufT : public std::streambuf
+{
+    Allocator _allocator;
+
+public:
+
+    MemStreamBufT()
+    {
+        auto beg = _allocator.get();
+        auto end = _allocator.get() + _allocator.maxSize();
+
+        setp(beg, end);
+        setg(beg, beg, beg);
+    }
+
+    MemStreamBufT(char_type* p, std::streamsize s, bool owning = false):
+        _allocator(p, s, owning)
+    {
+        auto beg = _allocator.get();
+        auto end = _allocator.get() + s;//_allocator.maxSize();
+
+        setp(beg, end);
+        setg(beg, beg, beg);
+    }
+
+
+    char* get() { return _allocator.get(); }
+    std::string str() { return std::string(_allocator.get(), size()); }
+
+    size_t size() { return egptr() - eback(); } //content length
+
+    bool isOwning() { return _allocator.owning(); }
+    std::streamsize allocsize() { return _allocator.maxSize(); } //alloc size
 
     // basic_streambuf interface
 protected:
@@ -100,11 +193,11 @@ protected:
             return seekpos(__off, __which);
         }
         else if (__way == std::ios_base::end) {
-            return seekpos(epptr() - pbase() - __off, __which);
+            return seekpos(egptr() - eback() - __off, __which);
         }
         else if (__way == std::ios_base::cur) {
             if(__which & std::ios_base::in) {
-                return seekpos((gptr() - pbase()) + __off, __which);
+                return seekpos((gptr() - eback()) + __off, __which);
             }
             else if(__which & std::ios_base::out) {
                 return seekpos((pptr() - pbase()) + __off, __which);
@@ -118,7 +211,7 @@ protected:
                              std::ios_base::openmode __which = std::ios_base::in | std::ios_base::out) override
     {
         size_t absoluteOffset = static_cast<size_t>(__sp);
-        //TODO: __which == in? fail
+        // __which == in? fail
         //check if can seek within allocated memory
         if ((pbase() + absoluteOffset) > epptr() ) {
             //if not allocate more
@@ -131,39 +224,40 @@ protected:
         //seek depending on __which
         //set p's and g's
         if (__which & std::ios_base::in) {
-            setg(_buf, _buf + absoluteOffset, pptr());
+            //setg(_allocator.get(), _allocator.get() + absoluteOffset, pptr());
+            setg(eback(), eback() + absoluteOffset, egptr());
         } else if (__which & std::ios_base::out) {
-            setp(_buf, epptr());
+            setp(_allocator.get(), _allocator.get() + _allocator.maxSize());
             pbump(absoluteOffset);
         }
         return __sp;
     }
 
-    virtual std::streamsize xsputn(const char_type *__s, std::streamsize __n) override
-    {
-        //std::cout << "xsputn(" << __n << "): " << ((__s!=nullptr)?__s[0]:'-')<< '\n';
-
-        //TODO: check if __n chars can be written
+    virtual std::streamsize xsputn(const char_type *__s, std::streamsize __n) override {
+        //check if __n chars can be written
         if (epptr() - pptr() < __n) {
-            //TOOD: if not allocate memory, move old memory
+            //if not allocate memory, move old memory
 
             if (!allocate(size() + __n)) {
                 return traits_type::eof();
             }
         }
 
-        //TODO: if so, just copy
-        std::memcpy(pptr(), __s, static_cast<size_t>(__n));
+        //if so, just copy
+        //std::memcpy(pptr(), __s, static_cast<size_t>(__n));
+        std::copy(__s, __s + __n, pptr());
 
-        //TODO: adjust p prts
+        //adjust p prts
         pbump(static_cast<int>(__n));
+
+        //update possible reading range
+        setg(eback(), gptr(), std::max(egptr(), pptr()));
 
         return __n;
     }
 
     virtual int_type overflow(int_type __c) override
     {
-        //std::cout << "overflow: " << static_cast<char>(__c) << '\n';
         if (traits_type::eq_int_type(__c,traits_type::eof()) == true) { return 0; }
 
         auto c = traits_type::to_char_type(__c);
@@ -173,56 +267,37 @@ protected:
                 return traits_type::eof();
             }
         }
-        /*
-        std::cout << "Put: " << c << std::ios::hex << ", "
-                  << "pbase: " << static_cast<void*>(pbase()) << ", "
-                  << "pptr: " << static_cast<void*>(pptr()) << ", "
-                  << "epptr: " << static_cast<void*>(epptr()) << ", "
-                  << '\n';
-                  */
 
-        return sputc(c);
+        char_type t = sputc(c);
+        //update possible reading range
+        setg(eback(), gptr(), std::max(egptr(), pptr()));
+        return t;
     }
-
-    /*
-    virtual int_type pbackfail(int_type __c) override
-    {
-        std::cout << "pbacfail: " << __c << '\n';
-        return std::streambuf::pbackfail(__c);
-    }
-    */
 
 private:
+
     bool allocate(size_t newSize) {
+        //size_t pOff = pptr() - pbase();
         size_t pOff = pptr() - pbase();
         size_t gOff = gptr() - eback();
+        size_t egOff = egptr() - eback();
 
-        //good read: http://blog.httrack.com/blog/2014/04/05/a-story-of-realloc-and-laziness/
-        //char_type* newStart = new char_type[newSize];
-        char_type* newStart = static_cast<char_type*>(realloc(_buf, newSize));
+        char_type* newStart = _allocator(newSize);
         if (newStart == nullptr) {
             return false;
         }
 
-        /* realloc do this if necessary
-        if (_buf) {
-            std::memcpy(newStart, _buf, size()); //copy old content
-            delete[] _buf;
-        }
-        */
-
-        _buf = newStart;
-        _size = newSize;
-
-        setp(_buf, _buf + _size);
+        setp(_allocator.get(), _allocator.get() + _allocator.maxSize());
         pbump(pOff);
-        setg(_buf, _buf + gOff, pptr());
+
+        setg(_allocator.get(), _allocator.get() + gOff, _allocator.get() + egOff);
 
         return true;
     }
 };
 
+typedef MemStreamBufT<> MemStreamBuf;
 
-}
+} //namespace
 
 #endif // MEMSTREAMBUF_HPP

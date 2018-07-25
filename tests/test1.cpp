@@ -19,17 +19,18 @@ TEST(MemStreamBuf, Constructor) {
     Stream::MemStreamBuf buf(p, size);
 
     EXPECT_EQ(buf.get(), p);
-    EXPECT_EQ(buf.allocsize(), size);
+    EXPECT_GE(buf.allocsize(), size);
     EXPECT_FALSE(buf.isOwning());
 }
 
+//valid only for reading
 TEST(MemStreamBuf, StringConstructor) {
     std::string s("Test String.");
 
     Stream::MemStreamBuf buf(&s[0], s.size());
     EXPECT_EQ(*buf.get(), s[0]);
     EXPECT_EQ(buf.size(), 0); //?
-    EXPECT_EQ(buf.allocsize(), s.size());
+    EXPECT_GE(buf.allocsize(), s.size());
     EXPECT_FALSE(buf.isOwning());
 }
 
@@ -46,7 +47,7 @@ TEST(MemStreamBuf, StreamTest1) {
     EXPECT_EQ(std::memcmp(buf.get(), "123", 3), 0);
     EXPECT_EQ(buf.str().size(), 3);
     EXPECT_EQ(buf.size(), 3); //?
-    EXPECT_EQ(buf.allocsize(), size); //?
+    EXPECT_GE(buf.allocsize(), size); //?
 }
 
 TEST(MemStreamBuf, StreamTest2) {
@@ -57,7 +58,7 @@ TEST(MemStreamBuf, StreamTest2) {
     const char* s= "123";
     os << s;
 
-    EXPECT_EQ(0, std::memcmp(buf.get(), s, 3));
+    EXPECT_EQ(std::memcmp(buf.get(), s, 3), 0);
     EXPECT_EQ(buf.str().size(), std::strlen(s));
     EXPECT_EQ(buf.size(), std::strlen(s));
 }
@@ -88,7 +89,7 @@ TEST(MemStreamBuf, StreamTestSeek1) {
     os.seekp(3, std::ios_base::beg);
     os << s2;
 
-    EXPECT_EQ(0, std::memcmp(buf.get(), out.c_str(), out.size()));
+    EXPECT_EQ(std::memcmp(buf.get(), out.c_str(), out.size()), 0);
     EXPECT_EQ(buf.size(), out.size()); //?
     EXPECT_EQ(os.tellp(), out.size()); //?
 }
@@ -112,7 +113,7 @@ TEST(MemStreamBuf, StreamTestSeek2) {
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(buf.size(), out.size());
-    EXPECT_EQ(buf.allocsize(), out.size());
+    EXPECT_GE(buf.allocsize(), out.size());
 
     EXPECT_EQ(buf.str(), out);
     EXPECT_EQ(buf.str().size(), out.size());
@@ -142,7 +143,7 @@ TEST(MemStreamBuf, StreamTestSeek3abc) {
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    EXPECT_EQ(buf.allocsize(), 3*size); //?
+    EXPECT_GE(buf.allocsize(), 3*size); //?
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 
@@ -173,13 +174,6 @@ TEST(MemStreamBuf, StreamTestSeek3cba) {
     os.seekp(0, std::ios_base::beg);
     os << oss1.rdbuf();
 
-    /*
-    std::cout << "3a: " << std::ios::boolalpha <<os.good() << ", "
-              << "size: " << buf.size() << ", "
-              << "p: " << os.tellp() << ", "
-              << '\n';
-              */
-
     //mock it
     stdos << s1 << s2 << s3;
 
@@ -187,7 +181,7 @@ TEST(MemStreamBuf, StreamTestSeek3cba) {
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    EXPECT_EQ(buf.allocsize(), 3*size); //?
+    EXPECT_GE(buf.allocsize(), 3*size); //?
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 
@@ -226,7 +220,7 @@ TEST(MemStreamBuf, StreamTestSeek3bca) {
 
     os.seekp(0, std::ios_base::end);
     EXPECT_EQ(std::memcmp(buf.get(), stdos.rdbuf()->str().c_str(), 3*size), 0);
-    EXPECT_EQ(buf.allocsize(), 3*size); //?
+    EXPECT_GE(buf.allocsize(), 3*size); //?
     EXPECT_EQ(buf.size(), 3*size); //?
 }
 } //namespace

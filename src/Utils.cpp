@@ -1,6 +1,5 @@
 #include "Utils.hpp"
 
-#include "OrthancPluginCppWrapper.h"
 #include "Core/OrthancException.h"
 
 #include <boost/filesystem.hpp>
@@ -10,9 +9,6 @@
 #include <string>
 
 namespace OrthancPlugins {
-
-extern OrthancPluginContext* context;
-
 namespace Utils {
 
 void readFile(void** content,

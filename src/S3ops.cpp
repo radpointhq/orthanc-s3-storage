@@ -12,6 +12,7 @@
 
 #include "MemStreamBuf.hpp"
 
+#include <boost/filesystem.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
 
 #define ALLOCATION_TAG "Orthanc S3 Storage"
@@ -247,7 +248,6 @@ bool S3TransferManager::UploadFileToS3(const std::string &path, const void *cont
     boost::interprocess::bufferstream buf(const_cast<char*>(static_cast<const char*>(content)), static_cast<size_t>(size));
     auto body = Aws::MakeShared<Aws::IOStream>(ALLOCATION_TAG, buf.rdbuf());
 
-	/*
     auto requestPtr = _tm->UploadFile(body,
                                       _bucket_name,
                                       path.c_str(),
@@ -266,10 +266,64 @@ bool S3TransferManager::UploadFileToS3(const std::string &path, const void *cont
     LogDetails(requestPtr);
 
     return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED); 
-	*/
-	return false;
 }
 
+bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **content, int64_t *size) {
+
+    boost::filesystem::path temp = "/tmp" / boost::filesystem::unique_path();
+    const std::string tempstr    = temp.native();  // optional
+
+    {
+        std::stringstream ss;
+        ss << "[S3] Using tmp: " << tempstr << '.';
+        LogInfo(_context, ss.str());
+    }
+
+    auto requestPtr = _tm->DownloadFile(_bucket_name,
+                                        path.c_str(),
+                                        tempstr.c_str());
+
+    requestPtr->WaitUntilFinished();
+
+    if (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED) {
+       //read file to memory
+        std::ifstream file(tempstr, std::ios::binary | std::ios::ate);
+        *size = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        *content = malloc(*size);
+        if (!*content) {
+            std::stringstream ss;
+            ss << "[S3] Could not allocate: " << *size << " bytes.";
+            LogError(_context, ss.str());
+
+           return false;
+        }
+
+        if (!file.read(static_cast<char*>(*content), *size))
+        {
+            std::stringstream ss;
+            ss << "[S3] Failed to read file: " << tempstr << ".";
+            LogError(_context, ss.str());
+
+           return false;
+        }
+    } else {
+        std::stringstream ss;
+        auto err = requestPtr->GetLastError();
+        ss << "[S3] Failed to get file: " << path << " because of: " << err.GetMessage() <<'.';
+        LogError(_context, ss.str());
+    }
+
+    std::remove(tempstr.c_str());
+
+    return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED);
+
+
+}
+
+/*
+ * TODO: fix the memory transfer
 bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **content, int64_t *size) {
 
     auto buf = Aws::MakeShared<Stream::MemStreamBuf>(ALLOCATION_TAG, nullptr, 0, false);
@@ -324,6 +378,7 @@ bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **conte
 
     return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED);
 }
+*/
 
 bool S3TransferManager::DeleteFileFromS3(const std::string &path) {
     const Aws::String key_name = path.c_str();

@@ -10,12 +10,12 @@
 
 namespace OrthancPlugins {
 
-template <typename Clock = std::chrono::high_resolution_clock>
-    class stopwatch
+    template <typename Clock = std::chrono::high_resolution_clock>
+    class StopwatchT
     {
         const typename Clock::time_point start_point;
     public:
-        stopwatch() :
+        StopwatchT() :
             start_point(Clock::now())
         {}
 
@@ -30,6 +30,8 @@ template <typename Clock = std::chrono::high_resolution_clock>
             return counted_time.count();
         }
     };
+
+    typedef StopwatchT<> Stopwatch;
 
 }
 
