@@ -10,13 +10,15 @@ if (ORTHANC_S3STORAGE_VERSION STREQUAL "mainline")
   set(ORTHANC_FRAMEWORK_VERSION "mainline")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "path")
 else()
-  set(ORTHANC_FRAMEWORK_VERSION "1.3.2")
+  set(ORTHANC_FRAMEWORK_VERSION "1.4.1")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-Wno-switch-default -Wno-unused-function")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -D_GLIBCXX_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
+
 set(JSONCPP_CXX11 ON) #TODO: does this work?
 
 # Parameters of the build
@@ -63,8 +65,8 @@ include_directories(${ORTHANC_ROOT}/Plugins/Include) #necessary for orthanc/Orth
 include_directories(${ORTHANC_ROOT}/Plugins/Samples/Common) #necessary for OrthancPluginCppWrapper.h and friends
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_ORTHANC_SDK)
-  message("Including ${ORTHANC_ROOT}/Sdk-1.3.2")
-  include_directories(${ORTHANC_ROOT}/Sdk-1.3.2)
+  message("Including ${ORTHANC_ROOT}/Sdk-1.4.1")
+  include_directories(${ORTHANC_ROOT}/Sdk-1.4.1)
 else ()
   message("Checking for orthanc/OrthancCPlugin.h")
   CHECK_INCLUDE_FILE_CXX("orthanc/OrthancCPlugin.h" HAVE_ORTHANC_H)
@@ -84,6 +86,7 @@ set(SOURCES
 include_directories(${ORTHANC_ROOT}/Core)  # To access "OrthancException.h"
 add_definitions(
   -DHAS_ORTHANC_EXCEPTION=1
+  -DORTHANC_ENABLE_LOGGING_PLUGIN=1
   )
 
 #make the installed rpath able to reach aws shared libs
@@ -154,6 +157,7 @@ if (test)
   ##############
   add_executable(runUnitTests
       tests/test1.cpp
+      tests/test2.cpp
   )
 
   set_target_properties (runUnitTests

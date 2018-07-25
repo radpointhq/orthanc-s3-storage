@@ -11,7 +11,7 @@ import stat
 import urllib2
 
 TARGET = os.path.join(os.path.dirname(__file__), 'Orthanc')
-PLUGIN_SDK_VERSION = '1.3.2'
+PLUGIN_SDK_VERSION = '1.4.1'
 REPOSITORY = 'https://bitbucket.org/sjodogne/orthanc/raw'
 
 FILES = [
@@ -25,7 +25,7 @@ FILES = [
 SDK = [
     'orthanc/OrthancCPlugin.h',
     'orthanc/OrthancCDatabasePlugin.h',
-    'orthanc/OrthancCppDatabasePlugin.h',
+    #'orthanc/OrthancCppDatabasePlugin.h',
 ]   
 
 EXE = [
