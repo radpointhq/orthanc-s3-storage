@@ -17,7 +17,10 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-Wno-switch-default -Wno-unused-function")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
+if (APPLE)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
+endif (APPLE)
 
 set(JSONCPP_CXX11 ON) #TODO: does this work?
 
@@ -156,8 +159,9 @@ if (test)
   # Unit Tests
   ##############
   add_executable(runUnitTests
-      tests/test1.cpp
-      tests/test2.cpp
+      tests/test0.cpp
+      #tests/test1.cpp
+      #tests/test2.cpp
   )
 
   set_target_properties (runUnitTests
@@ -178,5 +182,6 @@ if (test)
 
   # You can also omit NAME and COMMAND. The second argument could be some other
   # test executable.
-  add_test(MemStreamBuf.StreamTestSeek3a runUnitTests)
+  add_test(S3Storage.Example runUnitTests)
+  #add_test(MemStreamBuf.StreamTestSeek3a runUnitTests)
 endif()

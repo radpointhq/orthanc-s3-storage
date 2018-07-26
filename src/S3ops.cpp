@@ -1,4 +1,5 @@
 #include "S3ops.hpp"
+//#include "MemStreamBuf.hpp"
 
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/model/PutObjectRequest.h>
@@ -9,8 +10,6 @@
 
 #include <aws/core/utils/logging/DefaultLogSystem.h>
 #include <aws/core/utils/FileSystemUtils.h>
-
-#include "MemStreamBuf.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
