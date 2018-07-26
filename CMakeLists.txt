@@ -97,6 +97,13 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../aws/lib")
 
+#workaround of sorts for missing symbol we're using and they don't
+if (NOT STATIC_BUILD OR USE_SYSTEM_BOOST)
+    list(APPEND ORTHANC_CORE_SOURCES 
+        ${BOOST_NAME}/libs/filesystem/src/unique_path.cpp
+        )
+endif (NOT STATIC_BUILD OR USE_SYSTEM_BOOST)
+
 add_library(OrthancS3StoragePlugin SHARED
     ${SOURCES}
     ${ORTHANC_ROOT}/Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
