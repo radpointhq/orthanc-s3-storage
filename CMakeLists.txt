@@ -10,7 +10,7 @@ if (ORTHANC_S3STORAGE_VERSION STREQUAL "mainline")
   set(ORTHANC_FRAMEWORK_VERSION "mainline")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "path")
 else()
-  set(ORTHANC_FRAMEWORK_VERSION "1.4.1")
+  set(ORTHANC_FRAMEWORK_VERSION "1.4.0")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
 endif()
 
@@ -68,8 +68,8 @@ include_directories(${ORTHANC_ROOT}/Plugins/Include) #necessary for orthanc/Orth
 include_directories(${ORTHANC_ROOT}/Plugins/Samples/Common) #necessary for OrthancPluginCppWrapper.h and friends
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_ORTHANC_SDK)
-  message("Including ${ORTHANC_ROOT}/Sdk-1.4.1")
-  include_directories(${ORTHANC_ROOT}/Sdk-1.4.1)
+  message("Including ${ORTHANC_ROOT}/Sdk-1.4.0")
+  include_directories(${ORTHANC_ROOT}/Sdk-1.4.0)
 else ()
   message("Checking for orthanc/OrthancCPlugin.h")
   CHECK_INCLUDE_FILE_CXX("orthanc/OrthancCPlugin.h" HAVE_ORTHANC_H)
