@@ -28,9 +28,18 @@ Place this section in the Orthanc config:
       "aws_access_key_id" : "XXX",
       "aws_secret_access_key" : "XXX",
       "aws_region": "eu-central-1",
-      "s3_bucket": "delme-test-bucket"
+      "s3_bucket": "delme-test-bucket",
+      "implementation": "direct"
+
   },
 ```
+
+Note that `aws_access_key_id` and `aws_secret_access_key` are optional if you provide correct creds in `~/.aws/credentials`.
+
+Another optional parameter chooses between AWS Trarnsfer Manager (default) and Direct Object operations on S3. 
+Possible values:
+ - `direct`
+ - `transfer_manager`
 
 
 ## How to deploy the plugin in Docker

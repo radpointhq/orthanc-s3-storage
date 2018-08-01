@@ -2,7 +2,7 @@ set(USE_SYSTEM_AWS_SDK OFF CACHE BOOL "Use the system version of AWS SDK")
 
 if (NOT USE_SYSTEM_AWS_SDK)
     message("Getting AWS SDK from the web...")
-    SET(AWS_SDK_VERSION "1.4.70")
+    SET(AWS_SDK_VERSION "1.4.89")
     SET(AWS_SDK_SOURCES_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION})
     SET(AWS_SDK_BINARY_DIR ${CMAKE_BINARY_DIR}/aws-sdk-cpp-${AWS_SDK_VERSION}-build)
     SET(AWS_SDK_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/orthanc/aws)
@@ -21,6 +21,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
     SET(AWS_SDK_SHARED "ON")
     SET(AWS_CORE_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-core${CMAKE_SHARED_LIBRARY_SUFFIX})
     SET(AWS_S3_LIBRARY ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-s3${CMAKE_SHARED_LIBRARY_SUFFIX})
+    SET(AWS_TRANSFER ${AWS_SDK_INSTALL_DIR}/lib/libaws-cpp-sdk-transfer${CMAKE_SHARED_LIBRARY_SUFFIX})
 
     include(ExternalProject)
 
@@ -41,7 +42,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DCMAKE_CXX_FLAGS=${EXTERNAL_CXX_FLAGS}
         -DCMAKE_C_FLAGS=${EXTERNAL_C_FLAGS}
         -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
-        -DBUILD_ONLY=s3
+        -DBUILD_ONLY=transfer;s3
         #-DSIMPLE_INSTALL="ON"
         #-DNO_HTTP_CLIENT="ON"
         #-DNO_ENCRYPTION="ON"
@@ -52,6 +53,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
 
     link_libraries(${AWS_S3_LIBRARY})
     link_libraries(${AWS_CORE_LIBRARY})
+    link_libraries(${AWS_TRANSFER})
 
 else()
     message("Looking for local AWS SDK: ${AWS_SDK_BINARY_DIR}")
@@ -66,5 +68,6 @@ else()
 
     link_libraries(aws-cpp-sdk-core)
     link_libraries(aws-cpp-sdk-s3)
+    link_libraries(aws-cpp-sdk-transfer)
 
 endif()

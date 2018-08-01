@@ -682,6 +682,18 @@ extern "C"
       OrthancPluginResourceType resourceType,
       const OrthancPluginDicomTag* tag,
       OrthancPluginIdentifierConstraint constraint);
+
+    /* Output: Use OrthancPluginDatabaseAnswerInt64() */
+    OrthancPluginErrorCode  (*lookupIdentifierRange) (
+      /* outputs */
+      OrthancPluginDatabaseContext* context,
+      /* inputs */
+      void* payload,
+      OrthancPluginResourceType resourceType,
+      uint16_t group,
+      uint16_t element,
+      const char* start,
+      const char* end);
    } OrthancPluginDatabaseExtensions;
 
 /*<! @endcond */
@@ -695,13 +707,8 @@ extern "C"
   } _OrthancPluginRegisterDatabaseBackend;
 
   /**
-   * Register a custom database back-end.
+   * Register a custom database back-end (for legacy plugins).
    *
-   * Instead of manually filling the OrthancPluginDatabaseBackend
-   * structure, you should instead implement a concrete C++ class
-   * deriving from ::OrthancPlugins::IDatabaseBackend, and register it
-   * using ::OrthancPlugins::DatabaseBackendAdapter::Register().
-   * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param backend The callbacks of the custom database engine.
    * @param payload Pointer containing private information for the database engine.
@@ -754,11 +761,6 @@ extern "C"
   /**
    * Register a custom database back-end.
    *
-   * Instead of manually filling the OrthancPluginDatabaseBackendV2
-   * structure, you should instead implement a concrete C++ class
-   * deriving from ::OrthancPlugins::IDatabaseBackend, and register it
-   * using ::OrthancPlugins::DatabaseBackendAdapter::Register().
-   * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param backend The callbacks of the custom database engine.
    * @param payload Pointer containing private information for the database engine.
