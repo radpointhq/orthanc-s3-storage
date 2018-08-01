@@ -1,4 +1,5 @@
 #include "S3ops.hpp"
+#include "Utils.hpp"
 //#include "MemStreamBuf.hpp"
 
 #include <aws/core/auth/AWSCredentialsProvider.h>
@@ -285,27 +286,17 @@ bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **conte
     requestPtr->WaitUntilFinished();
 
     if (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED) {
-       //read file to memory
-        std::ifstream file(tempstr, std::ios::binary | std::ios::ate);
-        *size = file.tellg();
-        file.seekg(0, std::ios::beg);
+        //read file to memory
+        try {
+            Utils::readFile(content, size, tempstr);
+        } catch (Orthanc::OrthancException &e) {
+            std::remove(tempstr.c_str());
 
-        *content = malloc(*size);
-        if (!*content) {
             std::stringstream ss;
-            ss << "[S3] Could not allocate: " << *size << " bytes.";
+            ss << "[S3] Failed to read file: " << tempstr << ", " << e.What();
             LogError(_context, ss.str());
 
-           return false;
-        }
-
-        if (!file.read(static_cast<char*>(*content), *size))
-        {
-            std::stringstream ss;
-            ss << "[S3] Failed to read file: " << tempstr << ".";
-            LogError(_context, ss.str());
-
-           return false;
+            return false;
         }
     } else {
         std::stringstream ss;
