@@ -4,7 +4,11 @@ option(test "Build all tests." OFF) # Makes boolean 'test' available.
 
 project(OrthancS3Storage)
 
-set(PLUGIN_VERSION "mainline" CACHE STRING "Version of the library and Orthanc SDK")
+set(VERSION_MAJOR "0" )
+set(VERSION_MINOR "2" )
+set(VERSION_PATCH "1" )
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
 set(ORTHANC_SDK_VERSION "1.4.0")
 
 if (PLUGIN_VERSION STREQUAL "mainline")
@@ -16,8 +20,10 @@ else()
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-Wno-switch-default -Wno-unused-function")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
+#Json Reader class is deprecated in Orthanc code
+#Who cares about unused functions :P and default: in switch...
+set(CMAKE_CXX_FLAGS "-Wno-switch-default -Wno-unused-function -Wno-deprecated-declarations")
 
 if (APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
@@ -122,7 +128,6 @@ if (NOT USE_SYSTEM_AWS_SDK)
 endif ()
 
 message("Setting the version of the library to ${PLUGIN_VERSION}")
-add_definitions(-DPLUGIN_VERSION="${PLUGIN_VERSION}")
 set_target_properties(OrthancS3StoragePlugin PROPERTIES
         VERSION ${PLUGIN_VERSION}
         SOVERSION ${ORTHANC_SDK_VERSION}-${PLUGIN_VERSION}
