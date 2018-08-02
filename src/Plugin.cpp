@@ -319,7 +319,7 @@ ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
 
 ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
 {
-    return VERSION;
+    return PLUGIN_VERSION;
 }
 
 } //extern C
