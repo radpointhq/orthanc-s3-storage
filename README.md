@@ -80,3 +80,6 @@ Place this section in the Orthanc config:
 
 7. Always check last log just after you start:  `grep "Orthanc has started" $HOME/orthanc/log/Orthanc.log` 
 
+
+# Licensing
+The S3 Storage plugin for Orthanc is licensed under the AGPL license. 
