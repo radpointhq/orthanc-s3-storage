@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.5)
 
 option(test "Build all tests." OFF) # Makes boolean 'test' available.
 

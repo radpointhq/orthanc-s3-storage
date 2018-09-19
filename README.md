@@ -7,15 +7,17 @@ Orthanc plugin providing AWS S3 storage
 ## Prerequisits
 1. Build AWS-SDK from scratch (optional, you can do this by the plugin's CMakeLists system)
   - `git clone https://github.com/aws/aws-sdk-cpp.git`
-  - `cmake -DCMAKE_INSTALL_PREFIX=install -DBUILD_ONLY=s3 -H aws-sdk-cpp -B aws-sdk-cpp/build && cmake --build aws-sdk-cpp/build -- -j4`
-  - I didn't `make install`, so I need to set paths maually later
-  - 1GB of RAM is not enough. Adding 4GB swap file helped.
+  - `cmake -DCMAKE_INSTALL_PREFIX=install -DBUILD_ONLY="transfer s3" -H aws-sdk-cpp -B aws-sdk-cpp/build && cmake --build aws-sdk-cpp/build -- -j4`
+  - Either `make install`, or set paths maually later
+  - 1GB of RAM is not enough. Adding 4GB swap file helps.
 
 2. Build orthanc (optional if you don't need to debug plugin)
-  - use script provided with the plugin from scripts folder
+  - follow instructions from the official repo: https://bitbucket.org/sjodogne/orthanc/src/default/LinuxCompilation.txt
+  - informations given in above filne in section "Ubuntu 14.04 LTS" are fne for Ubuntu 16.04, too
+  - you can use a script provided with the plugin from `scripts` folder, but remember to fulfill recquired dependencies
 
 ## Build just a plugin
-  - use script provided with the plugin from scripts folder
+  - use script provided with the plugin from `scripts` folder
   - copy `libOrthancS3StoragePlugin.dylib*` or `libOrthancS3StoragePlugin.so*` to the folder indicated in Orthanc's json config file
 
 
@@ -27,10 +29,9 @@ Place this section in the Orthanc config:
   "S3" : {
       "aws_access_key_id" : "XXX",
       "aws_secret_access_key" : "XXX",
-      "aws_region": "eu-central-1",
-      "s3_bucket": "delme-test-bucket",
+      "aws_region": "name-of-region",
+      "s3_bucket": "name-of-bucker",
       "implementation": "direct"
-
   },
 ```
 

@@ -20,27 +20,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 BUILD_DIR="orthanc/build"
-mkdir ${BUILD_DIR} || true
+mkdir -p ${BUILD_DIR} || true
 INSTALL_DIR="install"
 mkdir ${BUILD_DIR}/${INSTALL_DIR} || true
 
 pushd ${BUILD_DIR}
 
-cmake .. \
- -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+
+cmake -DALLOW_DOWNLOADS=ON \
+ -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+ -DUSE_SYSTEM_MONGOOSE=OFF \
+ -DDCMTK_LIBRARIES=dcmjpls \
+ -DORTHANC_ENABLE_LOGGING=1 \
  -DCMAKE_BUILD_TYPE=Debug \
- -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl" \
- -DSQLITE_SOURCE_DIR="/usr/local/opt/sqlite3" \
- -DSQLITE_INCLUDE_DIR="/usr/local/opt/sqlite3/include" \
- -DSTANDALONE_BUILD="ON" \
- -DSTATIC_BUILD="OFF" \
- -DALLOW_DOWNLOADS="ON" \
- -DUSE_SYSTEM_BOOST="ON" \
+ -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
  -DUSE_SYSTEM_CURL="ON" \
- -DUSE_SYSTEM_MONGOOSE="OFF" \
- -DUSE_SYSTEM_PUGIXML="OFF" \
- -DUSE_SYSTEM_GOOGLE_TEST="OFF" \
- -DUSE_SYSTEM_UUID="OFF" \
- -DUSE_SYSTEM_DCMTK="OFF" \
- -DCMAKE_CXX_STANDARD=11 \
- -DCMAKE_CXX_STANDARD_REQUIRED="ON" \
+   ~/orthanc
+
