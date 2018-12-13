@@ -43,6 +43,11 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DCMAKE_C_FLAGS=${EXTERNAL_C_FLAGS}
         -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
         -DBUILD_ONLY=transfer;s3
+        -DAUTORUN_UNIT_TESTS=OFF
+        #TODO enable tests again once the issue is fixed and the pull request is accepted:
+        #https://github.com/aws/aws-sdk-cpp/issues/1010
+        #https://github.com/aws/aws-sdk-cpp/pull/1033
+        #https://github.com/ploki/aws-sdk-cpp/commit/c5aa6ec225cb9f77793654e5334ee49faa6e1ae2
         #-DSIMPLE_INSTALL="ON"
         #-DNO_HTTP_CLIENT="ON"
         #-DNO_ENCRYPTION="ON"
