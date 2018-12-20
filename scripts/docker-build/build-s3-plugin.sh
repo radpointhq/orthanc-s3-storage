@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+USE_EXISTING_BUILD=YES
 
 die() {
 echo "$*" >&2
@@ -17,10 +18,15 @@ pushd $(pwd)  >/dev/null
 cd  "$ROOT_DIR"
 
 CURRENT_DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
-BUILD_DIR="$ROOT_DIR"/build-${CURRENT_DATETIME}
-INSTALL_DIR="$ROOT_DIR"/install-${CURRENT_DATETIME}   
-
-mkdir $BUILD_DIR || die "Error. Selected dir already exists."
+if [ $USE_EXISTING_BUILD = NO ] ; then
+  BUILD_DIR="$ROOT_DIR"/build-${CURRENT_DATETIME}
+  INSTALL_DIR="$ROOT_DIR"/install-${CURRENT_DATETIME}   
+  mkdir $BUILD_DIR || die "Error. Selected dir already exists."
+else
+  BUILD_DIR="$ROOT_DIR"/build
+  INSTALL_DIR="$ROOT_DIR"/install
+  mkdir -p $BUILD_DIR 
+fi
 
 cd $BUILD_DIR   || die "Cannot change dir."
 
@@ -50,10 +56,10 @@ make -j4  || die "make error."
 make install || die "make install error." 
 
 #TODO 
-# CMAKE_BUILD_TYPE - to ma byc parametr
-# -DSTATIC_BUILD="OFF"  - to jest w CMakeLists
-# -DALLOW_DOWNLOADS="ON" \ - w CMakeLists jest odwrotnie
-# -DUSE_SYSTEM_ORTHANC_SDK="OFF" - w CmakeLists jest odwrotnie
+# CMAKE_BUILD_TYPE - set it as a CMake parameter
+# -DSTATIC_BUILD="OFF"  - already defined in CMakeLists
+# -DALLOW_DOWNLOADS="ON" \ - defined in CMakeLists as OFF
+# -DUSE_SYSTEM_ORTHANC_SDK="OFF" - defined in CmakeLists as ON
 
 #CMake Warning:
 #  Manually-specified variables were not used by the project:

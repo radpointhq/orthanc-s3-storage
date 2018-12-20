@@ -10,4 +10,4 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-CMD ["bash", "scripts/docker-build/build-s3-docker.sh"]
+CMD ["bash", "scripts/docker-build/build-s3-plugin.sh"]
