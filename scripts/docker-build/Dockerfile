@@ -4,9 +4,21 @@ RUN apt-get update && \
     apt-get install -qy apt-utils && \
     apt-get install -qy  \
     build-essential git mercurial subversion cmake \
-    coreutils xz-utils zip unzip curl wget \
-    libcurl4-openssl-dev libssl-dev  zlib1g-dev \
-    libcurl3-gnutls libgnutls30 libcurl3 
+    coreutils xz-utils zip unzip wget \
+    libssl-dev  zlib1g-dev \
+    libgnutls30 
+
+#libcurl3 libcurl3-gnutls curl libcurl4-openssl-dev 
+
+#build custom version on curl that doesn't depend on libgnutls
+#the version of curl is the same as the one linked by orthanc (Orthanc-1.4.0/Resources/CMake/LibCurlConfiguration.cmake)
+RUN wget http://www.orthanc-server.com/downloads/third-party/curl-7.57.0.tar.gz  && \
+tar xzf curl-7.57.0.tar.gz   && \
+cd curl-7.57.0  && \
+./configure --prefix=/usr/local --disable-ldaps --disable-ldap --without-gnutls --without-librtmp && \
+make -j4 && \
+make install
+#--disable-shared 
 
 WORKDIR /app
 

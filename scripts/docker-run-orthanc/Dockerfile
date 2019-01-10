@@ -8,4 +8,4 @@ ENV AC_BUNDLE_DEFAULTS=false
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
-run apt-get update && apt-get install -qy libcurl3 openssl
+run apt-get update && apt-get install -qy libssl-dev

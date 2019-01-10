@@ -7,6 +7,6 @@ pushd . >/dev/null
 
 cd  "$ROOT_DIR" 
 
-sudo docker run -v "$ROOT_DIR":/app  orthanc-s3-plugin-dev
+docker run -v "$ROOT_DIR":/app -v "$ROOT_DIR"/local:/artifacts/     orthanc-s3-plugin-dev
 
 popd  >/dev/null

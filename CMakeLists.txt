@@ -62,6 +62,7 @@ include(${ORTHANC_ROOT}/Resources/CMake/BoostConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/JsonCppConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/LibCurlConfiguration.cmake)
 include(${ORTHANC_ROOT}/Resources/CMake/OpenSslConfiguration.cmake)
+include(${ORTHANC_ROOT}/Resources/CMake/ZlibConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/Resources/CMake/AwsSdkConfiguration.cmake)
 
 message("ORTHANC_ROOT: ${ORTHANC_ROOT}")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-USE_EXISTING_BUILD=YES
+USE_EXISTING_BUILD=NO
 
 die() {
 echo "$*" >&2
@@ -30,6 +30,9 @@ fi
 
 cd $BUILD_DIR   || die "Cannot change dir."
 
+#export PATH=/usr/local/bin:$PATH
+#export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
 cmake "$ROOT_DIR" \
  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
  -DCMAKE_BUILD_TYPE=Debug \
@@ -55,11 +58,17 @@ make -j4  || die "make error."
 
 make install || die "make install error." 
 
+
+#WARN the following two lines should be run only if the build is performed from docker environment
+cp -r /usr/local /artifacts/
+chmod -R a+w  /artifacts
+
 #TODO 
 # CMAKE_BUILD_TYPE - set it as a CMake parameter
 # -DSTATIC_BUILD="OFF"  - already defined in CMakeLists
 # -DALLOW_DOWNLOADS="ON" \ - defined in CMakeLists as OFF
 # -DUSE_SYSTEM_ORTHANC_SDK="OFF" - defined in CmakeLists as ON
+# -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib" \
 
 #CMake Warning:
 #  Manually-specified variables were not used by the project:
