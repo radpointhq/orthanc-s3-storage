@@ -1,4 +1,6 @@
 build
-build-*
+build-*/*
+install
+install-*/*
 ThirdPartyDownloads
 CMakeLists.txt.user
