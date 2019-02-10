@@ -1,1 +1,1 @@
-docker build --no-cache  -t orthanc-s3 .
+docker build -t orthanc-s3 .

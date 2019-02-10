@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-USE_EXISTING_BUILD=NO
 
 die() {
 echo "$*" >&2
@@ -17,16 +16,18 @@ fi
 pushd $(pwd)  >/dev/null
 cd  "$ROOT_DIR"
 
-CURRENT_DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
-if [ $USE_EXISTING_BUILD = NO ] ; then
-  BUILD_DIR="$ROOT_DIR"/build-${CURRENT_DATETIME}
-  INSTALL_DIR="$ROOT_DIR"/install-${CURRENT_DATETIME}   
-  mkdir $BUILD_DIR || die "Error. Selected dir already exists."
-else
+#Uncomment the following block if you want to create new build folder each time you launch build
+#USE_EXISTING_BUILD=NO
+#CURRENT_DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
+#if [ $USE_EXISTING_BUILD = NO ] ; then
+#  BUILD_DIR="$ROOT_DIR"/build-${CURRENT_DATETIME}
+#  INSTALL_DIR="$ROOT_DIR"/install-${CURRENT_DATETIME}   
+#  mkdir $BUILD_DIR || die "Error. Selected dir already exists."
+#else
   BUILD_DIR="$ROOT_DIR"/build
   INSTALL_DIR="$ROOT_DIR"/install
   mkdir -p $BUILD_DIR 
-fi
+#fi
 
 cd $BUILD_DIR   || die "Cannot change dir."
 
@@ -54,10 +55,8 @@ cmake "$ROOT_DIR" \
  -DUSE_SYSTEM_ORTHANC_SDK="OFF" \
  -DUSE_SYSTEM_AWS_SDK="OFF"   || die "cmake error."
 
-make -j4  || die "make error."
-
-make install || die "make install error." 
-
+cmake --build . -- -j4  || die "make error."
+cmake --build . --target install
 
 #WARN the following two lines should be run only if the build is performed from docker environment
 cp -r /usr/local /artifacts/

@@ -44,6 +44,7 @@ if (NOT USE_SYSTEM_AWS_SDK)
         -DBUILD_SHARED_LIBS=${AWS_SDK_SHARED}
         -DBUILD_ONLY=transfer;s3
         -DAUTORUN_UNIT_TESTS=OFF
+        #GIT_PROGRESS "ON"
         #TODO enable tests again once the issue is fixed and the pull request is accepted:
         #https://github.com/aws/aws-sdk-cpp/issues/1010
         #https://github.com/aws/aws-sdk-cpp/pull/1033

@@ -7,6 +7,6 @@ pushd . >/dev/null
 
 cd  "$ROOT_DIR" 
 
-docker build --no-cache -t orthanc-s3-plugin-dev ./scripts/docker-build/
+docker build -t orthanc-s3-plugin-dev ./scripts/docker-build-orthanc/
 
 popd >/dev/null
