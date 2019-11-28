@@ -68,9 +68,8 @@ bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::strin
 
     Aws::InitAPI(aws_api_options);
 
-    //aws_client_config.region = Aws::su
     Aws::Client::ClientConfiguration aws_client_config;
-    //aws_client_config.region = s3_region.c_str();
+    aws_client_config.region = s3_region.c_str();
     aws_client_config.scheme = Aws::Http::Scheme::HTTPS;
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
@@ -115,6 +114,7 @@ bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::strin
     request.SetCreateBucketConfiguration(req_config);
 
     auto outcome = s3_client->CreateBucket(request);
+
     if (outcome.GetError().GetErrorType() == Aws::S3::S3Errors::BUCKET_ALREADY_OWNED_BY_YOU ||
             outcome.GetError().GetErrorType() == Aws::S3::S3Errors::BUCKET_ALREADY_EXISTS ) {
         std::stringstream ss;
