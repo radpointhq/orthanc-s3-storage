@@ -31,12 +31,13 @@
 #include <aws/s3/model/GetBucketLocationRequest.h>
 
 #include <aws/core/utils/logging/DefaultLogSystem.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/FileSystemUtils.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/streams/bufferstream.hpp>
 
-#define ALLOCATION_TAG "Orthanc S3 Storage"
+#define ALLOCATION_TAG "Orthanc_S3_Storage"
 
 namespace OrthancPlugins {
 
@@ -57,18 +58,22 @@ bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::strin
                                const std::string& s3_bucket_name, const std::string& s3_region) {
 
     //Enable AWS logging
-    Aws::Utils::Logging::InitializeAWSLogging(
-                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>( //TODO: change log system from file to std out
-                    ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Info, "aws_sdk_"));
+    //Aws::Utils::Logging::InitializeAWSLogging(
+    //            Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>( //TODO: change log system from file to std out
+    //                ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Info, "aws_sdk_"));
+    aws_api_options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+    aws_api_options.loggingOptions.logger_create_fn = [] {
+        return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(ALLOCATION_TAG, Aws::Utils::Logging::LogLevel::Info);
+    };
 
     Aws::InitAPI(aws_api_options);
 
-    //aws_client_config.region = Aws::su
     Aws::Client::ClientConfiguration aws_client_config;
     aws_client_config.region = s3_region.c_str();
     aws_client_config.scheme = Aws::Http::Scheme::HTTPS;
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
+    aws_client_config.caPath = Aws::String("/etc/ssl/certs/");
 
     if (!s3_access_key.empty() && !s3_secret_key.empty()) {
         LogInfo(_context, "[S3] Using credentials from the config file");
@@ -100,7 +105,12 @@ bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::strin
     Aws::S3::Model::CreateBucketRequest request;
     request.SetBucket(_bucket_name);
     Aws::S3::Model::CreateBucketConfiguration req_config;
-    req_config.SetLocationConstraint(Aws::S3::Model::BucketLocationConstraintMapper::GetBucketLocationConstraintForName(s3_region.c_str()));
+    // Only set location constraint if region is not default region (us-east-1)
+    auto regionConstraint = Aws::S3::Model::BucketLocationConstraintMapper::GetBucketLocationConstraintForName(s3_region.c_str());
+    if (regionConstraint != Aws::S3::Model::BucketLocationConstraint::us_east_1)
+    {
+        req_config.SetLocationConstraint(regionConstraint);
+    }
     request.SetCreateBucketConfiguration(req_config);
 
     auto outcome = s3_client->CreateBucket(request);
