@@ -24,7 +24,7 @@ Place this section in the Orthanc config:
       "aws_access_key_id" : "XXX",
       "aws_secret_access_key" : "XXX",
       "aws_region": "name-of-region",
-      "s3_bucket": "name-of-bucker",
+      "s3_bucket": "name-of-bucket",
       "implementation": "direct"
   },
 ```
