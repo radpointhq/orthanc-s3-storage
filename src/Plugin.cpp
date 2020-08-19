@@ -85,17 +85,8 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
     }
 
     try {
-        if (type == OrthancPluginContentType_Dicom) {
-            path = GetPathStorage(uuid);
-            ok = s3->UploadFileToS3(path, content, size);
-        } else if (type== OrthancPluginContentType_DicomAsJson) {
-            path = GetPathInstance(uuid);
-            Utils::writeFile(content, size, path);
-            ok = true;
-        } else {
-            ok = false;
-            LogError(context, "[S3] Never should happen");
-        }
+        path = GetPathStorage(uuid);
+        ok = s3->UploadFileToS3(path, content, size);
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err << "[S3] Could not open uuid: " << path << ", " << e.What();
@@ -130,17 +121,8 @@ static OrthancPluginErrorCode StorageRead(void** content,
     }
 
     try {
-        if (type == OrthancPluginContentType_Dicom) {
-            path = GetPathStorage(uuid);
-            ok = s3->DownloadFileFromS3(path, content, size);
-        } else if (type == OrthancPluginContentType_DicomAsJson) {
-            path = GetPathInstance(uuid);
-            Utils::readFile(content, size, path);
-            ok = true;
-        } else {
-            LogError(context, "[S3] Never should happen");
-            ok = false;
-        }
+        path = GetPathStorage(uuid);
+        ok = s3->DownloadFileFromS3(path, content, size);
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err << "[S3] Could not read file: " << path << ", " << e.What();
@@ -174,18 +156,8 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
     }
 
     try {
-        if (type == OrthancPluginContentType_Dicom) {
-            path = GetPathStorage(uuid);
-            ok = s3->DeleteFileFromS3(path);
-        } else if (type == OrthancPluginContentType_DicomAsJson) {
-            path = GetPathInstance(uuid);
-            Utils::removeFile(path);
-            ok = true;
-        } else {
-            LogError(context, "[S3] Never should happen");
-            ok = false;
-        }
-
+        path = GetPathStorage(uuid);
+        ok = s3->DeleteFileFromS3(path);
     } catch (Orthanc::OrthancException &e) {
         std::stringstream err;
         err <<"[S3] Could not remove file: " << path << ", " << e.What();
