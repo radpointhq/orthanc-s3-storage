@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM debian:buster-slim
 
 RUN apt-get update && \
     apt-get install -qy apt-utils && \

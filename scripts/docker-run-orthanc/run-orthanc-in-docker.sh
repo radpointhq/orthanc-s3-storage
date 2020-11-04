@@ -8,4 +8,4 @@ docker run --network=host  --rm \
 -e LD_LIBRARY_PATH=/usr/local/lib \
 -p 4242:4242 \
 -p 8042:8042 \
-orthanc-s3 --verbose --trace /etc/orthanc/orthanc.json  --logdir=/var/log/orthanc
+orthanc-s3 /etc/orthanc/orthanc.json
