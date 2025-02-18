@@ -46,6 +46,8 @@ struct S3PluginContext {
     std::string s3_region;
     std::string s3_bucket_name;
 
+    std::string s3_endpoint;
+
     S3Method s3_method = S3Method::DIRECT;
 };
 
@@ -203,6 +205,7 @@ bool readS3Configuration(OrthancPluginContext* context, S3PluginContext& c) {
 
     c.s3_region = s3_configuration.GetStringValue("aws_region", AWS_DEFAULT_REGION).c_str();
     c.s3_bucket_name = s3_configuration.GetStringValue("s3_bucket", AWS_DEFAULT_BUCKET_MAME).c_str();
+    c.s3_endpoint = s3_configuration.GetStringValue("s3_endpoint", "").c_str();
 
     std::string method;
     s3_configuration.LookupStringValue(method, "implementation");
@@ -266,7 +269,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* plugin
         s3 = std::unique_ptr<S3Impl>(new S3TransferManager(context));
     }
 
-    if (!s3->ConfigureAwsSdk(c.s3_access_key, c.s3_secret_key, c.s3_bucket_name, c.s3_region)) {
+    if (!s3->ConfigureAwsSdk(c.s3_access_key, c.s3_secret_key, c.s3_bucket_name, c.s3_region, c.s3_endpoint)) {
         return EXIT_FAILURE;
     }
 
