@@ -1,0 +1,52 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - 9000:${MINIO_API_PORT}
+      - 9001:${MINIO_CONSOLE_PORT}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --anonymous --quiet --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
+    volumes:
+      - s3-storage:/data
+    healthcheck:
+      test: ["CMD", "curl", "-I", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+
+  orthanc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: orthanc-s3
+    container_name: orthanc
+    privileged: true
+    depends_on:
+      minio:
+        condition: service_healthy
+    ports:
+      - 8042:8042
+      - 4242:4242
+    environment:
+      ORTHANC_USER_NAME: ${ORTHANC_USER_NAME}
+      ORTHANC_PASSWORD: ${ORTHANC_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_API_PORT: ${MINIO_API_PORT}
+      BUCKET_NAME: ${BUCKET_NAME}
+      AWS_REGION: ${AWS_REGION}
+    volumes:
+      - $PWD/tests/orthanc.json:/etc/orthanc/orthanc.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "--user=orthanc", "--password=orthancadmin", "-O", "-", "http://localhost:8042/system"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+
+volumes:
+  s3-storage:

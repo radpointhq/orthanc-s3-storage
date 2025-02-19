@@ -6,7 +6,7 @@ RUN apt-get update && \
     build-essential git mercurial cmake \
     coreutils xz-utils zip unzip wget \
     libssl-dev  zlib1g-dev \
-    libgnutls30 
+    libgnutls30
 
 
 #build custom version on curl that doesn't depend on libgnutls
@@ -20,4 +20,6 @@ make install
 
 WORKDIR /app
 
-CMD ["bash", "scripts/docker-build-orthanc/build-s3-plugin.sh"]
+ADD . .
+
+RUN scripts/docker-build-orthanc/build-s3-plugin.sh
