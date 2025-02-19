@@ -39,6 +39,16 @@
 
 #define ALLOCATION_TAG "Orthanc_S3_Storage"
 
+namespace {
+  std::string extractUrlProtocol(const std::string& url) {
+    size_t pos = url.find("://");
+    if (pos != std::string::npos) {
+      return url.substr(0, pos);
+    }
+    return "";
+  }
+}
+
 namespace OrthancPlugins {
 
 S3Facade::S3Facade(S3Method m, OrthancPluginContext *context)
@@ -54,8 +64,11 @@ S3Facade::S3Facade(S3Method m, OrthancPluginContext *context)
     }
 }
 
-bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::string& s3_secret_key,
-                               const std::string& s3_bucket_name, const std::string& s3_region) {
+bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,
+                             const std::string& s3_secret_key,
+                             const std::string& s3_bucket_name,
+                             const std::string& s3_region,
+                             const std::string& s3_endpoint) {
 
     //Enable AWS logging
     //Aws::Utils::Logging::InitializeAWSLogging(
@@ -74,6 +87,14 @@ bool S3Impl::ConfigureAwsSdk(const std::string& s3_access_key,  const std::strin
     aws_client_config.connectTimeoutMs = 30000;
     aws_client_config.requestTimeoutMs = 600000;
     aws_client_config.caPath = Aws::String("/etc/ssl/certs/");
+    if (!s3_endpoint.empty()) {
+        aws_client_config.endpointOverride = s3_endpoint;
+        const std::string protocol = extractUrlProtocol(s3_endpoint);
+        if (protocol == "http") {
+            aws_client_config.scheme = Aws::Http::Scheme::HTTP;
+            aws_client_config.verifySSL = false;
+        }
+    }
 
     if (!s3_access_key.empty() && !s3_secret_key.empty()) {
         LogInfo(_context, "[S3] Using credentials from the config file");
@@ -255,9 +276,9 @@ void S3TransferManager::LogDetails(const std::shared_ptr<const Aws::Transfer::Tr
     LogInfo(_context, ss.str().c_str());
 }
 
-bool S3TransferManager::ConfigureAwsSdk(const std::string &s3_access_key, const std::string &s3_secret_key, const std::string &s3_bucket_name, const std::string &s3_region) {
+bool S3TransferManager::ConfigureAwsSdk(const std::string &s3_access_key, const std::string &s3_secret_key, const std::string &s3_bucket_name, const std::string &s3_region, const std::string &s3_endpoint) {
 
-    S3Impl::ConfigureAwsSdk(s3_access_key, s3_secret_key, s3_bucket_name, s3_region);
+    S3Impl::ConfigureAwsSdk(s3_access_key, s3_secret_key, s3_bucket_name, s3_region, s3_endpoint);
 
     _executor = Aws::MakeShared<Aws::Utils::Threading::PooledThreadExecutor>(ALLOCATION_TAG, 4);
     Aws::Transfer::TransferManagerConfiguration transferConfig(_executor.get());
@@ -296,7 +317,7 @@ bool S3TransferManager::UploadFileToS3(const std::string &path, const void *cont
 
     LogDetails(requestPtr);
 
-    return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED); 
+    return (requestPtr->GetStatus() == Aws::Transfer::TransferStatus::COMPLETED);
 }
 
 bool S3TransferManager::DownloadFileFromS3(const std::string &path, void **content, int64_t *size) {

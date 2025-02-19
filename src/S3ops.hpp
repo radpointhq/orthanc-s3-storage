@@ -58,8 +58,11 @@ public:
         _context = nullptr;
     };
 
-    virtual bool ConfigureAwsSdk(const std::string& s3_access_key, const std::string& s3_secret_key,
-                         const std::string& _bucket_name, const std::string& s3_region);
+    virtual bool ConfigureAwsSdk(const std::string& s3_access_key,
+                                 const std::string& s3_secret_key,
+                                 const std::string& _bucket_name,
+                                 const std::string& s3_region,
+                                 const std::string& s3_endpoint);
 
     virtual bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size) = 0;
     virtual bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size) = 0;
@@ -93,8 +96,11 @@ public:
         LogInfo(_context, "[S3] S3TransferManager");
     };
 
-    bool ConfigureAwsSdk(const std::string& s3_access_key, const std::string& s3_secret_key,
-                         const std::string& _bucket_name, const std::string& s3_region);
+    bool ConfigureAwsSdk(const std::string& s3_access_key,
+                         const std::string& s3_secret_key,
+                         const std::string& _bucket_name,
+                         const std::string& s3_region,
+                         const std::string& s3_endpoint);
 
     bool UploadFileToS3(const std::string & path, const void *content, const int64_t& size);
     bool DownloadFileFromS3(const std::string & path, void** content, int64_t* size);
@@ -109,9 +115,12 @@ class S3Facade
 public:
     S3Facade(S3Method m, OrthancPluginContext *context);
 
-    bool ConfigureAwsSdk(const std::string& s3_access_key, const std::string& s3_secret_key,
-                         const std::string& s3_bucket_name, const std::string& s3_region) {
-        return _s3->ConfigureAwsSdk(s3_access_key, s3_secret_key, s3_bucket_name, s3_region);
+    bool ConfigureAwsSdk(const std::string& s3_access_key,
+                         const std::string& s3_secret_key,
+                         const std::string& s3_bucket_name,
+                         const std::string& s3_region,
+                         const std::string& s3_endpoint) {
+        return _s3->ConfigureAwsSdk(s3_access_key, s3_secret_key, s3_bucket_name, s3_region, s3_endpoint);
     };
 
     bool UploadFileToS3(const std::string & path, const void* content, const int64_t& size) {
